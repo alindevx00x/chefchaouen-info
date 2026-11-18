@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/$USER/public_html/
+    - /bin/bash -lc 'cd "$(pwd)" && if [ -f deploy.sh ]; then chmod +x deploy.sh; fi'
