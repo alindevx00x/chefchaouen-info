@@ -42,8 +42,8 @@ class DatabaseSeeder extends Seeder
             ['group' => 'general', 'key' => 'site_name', 'value' => 'Chefchaouen.info'],
             ['group' => 'general', 'key' => 'site_tagline', 'value' => 'Deeper Than Blue | The Blue Pearl Travel Directory'],
             ['group' => 'general', 'key' => 'contact_email', 'value' => 'contact@chefchaouen.info'],
-            ['group' => 'general', 'key' => 'site_icon', 'value' => ''],
-            ['group' => 'general', 'key' => 'site_favicon', 'value' => ''],
+            ['group' => 'general', 'key' => 'site_icon', 'value' => '/images/branding/site-icon.png'],
+            ['group' => 'general', 'key' => 'site_favicon', 'value' => '/images/branding/site-favicon.png'],
             ['group' => 'general', 'key' => 'hero_title', 'value' => 'Chefchaouen Deeper Than Blue'],
             ['group' => 'general', 'key' => 'hero_subtitle', 'value' => 'Welcome to the Blue Pearl of Morocco. Discover hand-picked medina places, Rif Mountain routes, and local stories.'],
             ['group' => 'general', 'key' => 'hero_image', 'value' => '/images/gallery/hero-medina.jpg'],
@@ -90,7 +90,7 @@ class DatabaseSeeder extends Seeder
                 'selected_model' => 'llama-3.3-70b-versatile',
                 'available_models' => ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
                 'is_active' => true,
-                'is_default' => true,
+                'is_default' => false,
             ],
             [
                 'name' => 'OpenAI',
@@ -123,10 +123,10 @@ class DatabaseSeeder extends Seeder
                 'name' => 'OpenRouter',
                 'slug' => 'openrouter',
                 'base_url' => 'https://openrouter.ai/api/v1',
-                'selected_model' => 'openai/gpt-4o-mini',
-                'available_models' => ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.5-flash', 'meta-llama/llama-3.3-70b-instruct'],
+                'selected_model' => 'recursive/flint-v1.0:free',
+                'available_models' => ['recursive/flint-v1.0:free', 'openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.5-flash', 'meta-llama/llama-3.3-70b-instruct'],
                 'is_active' => true,
-                'is_default' => false,
+                'is_default' => true,
             ],
         ];
 
