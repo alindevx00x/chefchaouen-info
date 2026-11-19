@@ -87,6 +87,9 @@
                 <a href="{{ route('admin.newsletters.index') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.newsletters.*') ? 'bg-chaouen-600 text-white' : 'hover:bg-slate-900' }}">
                     <span>📰</span> Newsletters (CSV)
                 </a>
+                <a href="{{ route('admin.chatbot-logs.index') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.chatbot-logs.*') ? 'bg-chaouen-600 text-white' : 'hover:bg-slate-900' }}">
+                    <span>🤖</span> AI Chatbot Logs
+                </a>
                 <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.settings.*') ? 'bg-chaouen-600 text-white' : 'hover:bg-slate-900' }}">
                     <span>⚙️</span> Settings, Email, SEO & AI
                 </a>

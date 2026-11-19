@@ -186,7 +186,10 @@
         <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-bold text-base text-slate-900">Recent AI Guide Chatbot Queries</h2>
-                <a href="{{ route('admin.settings.index', ['tab' => 'ai']) }}" class="text-xs font-semibold text-chaouen-600 hover:underline">AI Settings →</a>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('admin.chatbot-logs.index') }}" class="text-xs font-semibold text-chaouen-600 hover:underline">Manage All Chats →</a>
+                    <a href="{{ route('admin.settings.index', ['tab' => 'ai']) }}" class="text-xs font-semibold text-slate-500 hover:underline">AI Settings</a>
+                </div>
             </div>
             @if($recentChatLogs->isEmpty())
                 <p class="text-xs text-slate-500 py-4">No visitor questions logged with the Chefchaouen Guide AI yet.</p>

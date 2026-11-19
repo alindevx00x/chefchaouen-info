@@ -276,4 +276,106 @@ class ChefchaouenPlatformTest extends TestCase
         $this->assertSame('', Setting::getValue('site_icon'));
         $this->assertSame('', Setting::getValue('site_favicon'));
     }
+
+    public function test_admin_can_view_filter_export_and_manage_chatbot_logs(): void
+    {
+        $admin = User::where('email', 'admin@chefchaouen.info')->firstOrFail();
+
+        $this->get('/admin/chatbot-logs')->assertRedirect('/admin/login');
+
+        $answeredLog = \App\Models\ChatbotLog::create([
+            'session_id' => 'sess-alpha',
+            'user_message' => 'What is the best time to visit Ras El Ma?',
+            'bot_response' => 'Morning light at Ras El Ma waterfall is calm and refreshing.',
+            'provider_used' => 'local_kb',
+            'model_used' => 'chefchaouen-rag',
+            'was_blocked_off_topic' => false,
+        ]);
+
+        $followUpLog = \App\Models\ChatbotLog::create([
+            'session_id' => 'sess-alpha',
+            'user_message' => 'Where to eat tagine near Uta El Hammam?',
+            'bot_response' => 'Try traditional restaurants around Plaza Uta El Hammam.',
+            'provider_used' => 'openai',
+            'model_used' => 'gpt-4o-mini',
+            'was_blocked_off_topic' => false,
+        ]);
+
+        $blockedLog = \App\Models\ChatbotLog::create([
+            'session_id' => 'sess-beta',
+            'user_message' => 'Write a Python sorting algorithm for me.',
+            'bot_response' => 'Sorry, I only answer questions related to Chefchaouen.',
+            'provider_used' => 'firewall',
+            'model_used' => 'static-guard',
+            'was_blocked_off_topic' => true,
+        ]);
+
+        // Index in default messages view + filters
+        $this->actingAs($admin)
+            ->get('/admin/chatbot-logs')
+            ->assertStatus(200)
+            ->assertSee('Ras El Ma')
+            ->assertSee('Python sorting algorithm');
+
+        $this->actingAs($admin)
+            ->get('/admin/chatbot-logs?status=blocked')
+            ->assertStatus(200)
+            ->assertSee('Python sorting algorithm')
+            ->assertDontSee('Ras El Ma');
+
+        $this->actingAs($admin)
+            ->get('/admin/chatbot-logs?q=Uta+El+Hammam&session_id=sess-alpha')
+            ->assertStatus(200)
+            ->assertSee('tagine')
+            ->assertDontSee('Python sorting algorithm');
+
+        // Grouped sessions view
+        $this->actingAs($admin)
+            ->get('/admin/chatbot-logs?view=sessions')
+            ->assertStatus(200)
+            ->assertSee('sess-alpha')
+            ->assertSee('sess-beta');
+
+        // Export CSV
+        $csvResponse = $this->actingAs($admin)->get('/admin/chatbot-logs/export?status=answered');
+        $csvResponse->assertStatus(200);
+        $this->assertStringContainsString('text/csv', (string) $csvResponse->headers->get('content-type'));
+        $csvContent = $csvResponse->streamedContent();
+        $this->assertStringContainsString('Ras El Ma', $csvContent);
+        $this->assertStringNotContainsString('Python sorting algorithm', $csvContent);
+
+        // Delete a single log entry
+        $this->actingAs($admin)
+            ->delete('/admin/chatbot-logs/' . $answeredLog->id)
+            ->assertRedirect();
+        $this->assertDatabaseMissing('chatbot_logs', ['id' => $answeredLog->id]);
+
+        // Delete an entire session
+        $this->actingAs($admin)
+            ->delete('/admin/chatbot-logs/session', ['session_id' => 'sess-alpha'])
+            ->assertRedirect();
+        $this->assertDatabaseMissing('chatbot_logs', ['id' => $followUpLog->id]);
+        $this->assertDatabaseHas('chatbot_logs', ['id' => $blockedLog->id]);
+
+        // Clear blocked logs
+        $this->actingAs($admin)
+            ->delete('/admin/chatbot-logs/clear', ['scope' => 'blocked'])
+            ->assertRedirect();
+        $this->assertDatabaseMissing('chatbot_logs', ['id' => $blockedLog->id]);
+
+        // Clear all remaining logs
+        \App\Models\ChatbotLog::create([
+            'session_id' => 'sess-gamma',
+            'user_message' => 'How to reach Akchour?',
+            'bot_response' => 'Take a grand taxi from Chefchaouen toward Talassemtane.',
+            'provider_used' => 'local_kb',
+            'model_used' => 'chefchaouen-rag',
+            'was_blocked_off_topic' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete('/admin/chatbot-logs/clear', ['scope' => 'all'])
+            ->assertRedirect();
+        $this->assertSame(0, \App\Models\ChatbotLog::count());
+    }
 }

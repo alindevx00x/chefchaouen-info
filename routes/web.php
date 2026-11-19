@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BlogController;
+use App\Http\Controllers\Admin\ChatbotLogController;
 use App\Http\Controllers\Admin\ContactNewsletterController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\GalleryPhotoController;
@@ -118,6 +119,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/newsletters', [ContactNewsletterController::class, 'newsletters'])->name('newsletters.index');
         Route::get('/newsletters/export', [ContactNewsletterController::class, 'exportNewslettersCsv'])->name('newsletters.export');
         Route::delete('/newsletters/{newsletter}', [ContactNewsletterController::class, 'destroyNewsletter'])->name('newsletters.destroy');
+
+        // AI Chatbot Logs & Conversations Management
+        Route::get('/chatbot-logs', [ChatbotLogController::class, 'index'])->name('chatbot-logs.index');
+        Route::get('/chatbot-logs/export', [ChatbotLogController::class, 'exportCsv'])->name('chatbot-logs.export');
+        Route::delete('/chatbot-logs/session', [ChatbotLogController::class, 'destroySession'])->name('chatbot-logs.destroy-session');
+        Route::delete('/chatbot-logs/clear', [ChatbotLogController::class, 'clear'])->name('chatbot-logs.clear');
+        Route::delete('/chatbot-logs/{chatbotLog}', [ChatbotLogController::class, 'destroy'])->name('chatbot-logs.destroy');
 
         // General Settings, Email (SMTP/Brevo), Full SEO, AI Models, FAQs
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
