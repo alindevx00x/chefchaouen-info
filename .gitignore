@@ -1,5 +1,8 @@
 *.log
 *.sql
+/*.doc
+/*.docx
+/*.pdf
 .DS_Store
 .env
 .env.backup

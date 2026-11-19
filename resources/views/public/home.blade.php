@@ -17,7 +17,7 @@
                     {{ str_replace('—', '', $siteSettings['hero_title'] ?? 'Chefchaouen Deeper Than Blue') }}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-100/90 max-w-2xl mx-auto leading-relaxed mb-10">
-                    {{ str_replace('—', ' ', $siteSettings['hero_subtitle'] ?? 'Behind every blue door lies a story. Discover curated medina places, Rif Mountain routes, and our interactive map.') }}
+                    {{ str_replace('—', ' ', $siteSettings['hero_subtitle'] ?? 'Behind every blue door lies a story. Beyond every alley awaits a new perspective. From the timeless charm of the medina to Akchour and the Rif Mountains, discover layers of beauty beyond the blue walls.') }}
                 </p>
             </div>
 
@@ -247,8 +247,44 @@
         </div>
     </section>
 
-    <!-- 6. HISTORY & CULTURE SPOTLIGHT (1471) -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <!-- 6. MORE THAN A DESTINATION & HISTORY SPOTLIGHT (1471) -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
+        <!-- Editorial Highlights Strip from Home Page Guide (4-Column Grid) -->
+        <div>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-chaouen-600 mb-2">More Than a Destination · Discover More Than Blue</p>
+                    <h2 class="font-editorial text-3xl sm:text-4xl font-bold text-slate-900">Andalusian heritage meets Rif Mountain soul.</h2>
+                    <p class="text-sm text-slate-600 mt-1.5 max-w-3xl">Behind every blue door lies a story. Explore hidden alleys, boutique riads, Rif culinary flavors, and personalized itineraries from 1 to 3 days.</p>
+                </div>
+                <a href="{{ route('page.show', 'visit-plans') }}" class="text-sm font-semibold text-chaouen-600 hover:text-chaouen-800 whitespace-nowrap">
+                    View travel plans →
+                </a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <a href="{{ route('places.index', ['hidden_gems' => 1]) }}" class="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg transition block">
+                    <span class="text-2xl mb-3 block">🚪</span>
+                    <h3 class="font-bold text-base text-slate-900 mb-1.5">Hidden Gems &amp; Stories</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Quiet residential blue stairs, historic communal wood ovens, and riverside tea terraces.</p>
+                </a>
+                <a href="{{ route('places.index', ['category' => 'hotels']) }}" class="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg transition block">
+                    <span class="text-2xl mb-3 block">🏡</span>
+                    <h3 class="font-bold text-base text-slate-900 mb-1.5">Boutique Riads &amp; Stays</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Handpicked Andalusian courtyard houses, panoramic hillside dars, and Booking.com top stays.</p>
+                </a>
+                <a href="{{ route('routes.index') }}" class="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg transition block">
+                    <span class="text-2xl mb-3 block">⛰️</span>
+                    <h3 class="font-bold text-base text-slate-900 mb-1.5">Akchour &amp; Rif Trails</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Turquoise pools, God's Bridge, Azilan cedar forests, and golden-hour Bouzaafar overlooks.</p>
+                </a>
+                <a href="{{ route('page.show', 'visit-plans') }}" class="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg transition block">
+                    <span class="text-2xl mb-3 block">🧭</span>
+                    <h3 class="font-bold text-base text-slate-900 mb-1.5">Personalized Itineraries</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Curated 1-day, 2-day, and 3-day travel plans with real MAD transport and dining budgets.</p>
+                </a>
+            </div>
+        </div>
+
         <div class="bg-chaouen-900 text-white rounded-3xl overflow-hidden shadow-xl grid grid-cols-1 lg:grid-cols-12">
             <div class="lg:col-span-7 p-8 sm:p-12 flex flex-col justify-center">
                 <span class="text-xs font-bold uppercase tracking-widest text-sky-300 mb-3">✳ NOT JUST A PRETTY VIEW · Every blue wall has a story.</span>
@@ -256,7 +292,7 @@
                     History & culture: From a 15th-century fortress to a city painted in sky.
                 </h2>
                 <p class="text-sm sm:text-base text-chaouen-100 leading-relaxed mb-6">
-                    Founded in 1471 as a mountain fortress, Chefchaouen grew when Andalusian Muslim and Jewish families arrived after 1492. Their craftsmanship, horseshoe arches, zellige, and carved cedar, shapes the lanes you walk today.
+                    Founded in 1471 (876 AH) as a citadel between Jebel Tissouka and Jebel El-Kelaa ("Look at the Peaks"), Chefchaouen flourished under the Banu Rachid Emirate and three Andalusian waves. Their craftsmanship, horseshoe arches, zellige, and carved cedar, shapes the lanes you walk today.
                 </p>
                 <div class="mb-7">
                     <p class="text-xs uppercase tracking-wider text-sky-300 font-semibold mb-2.5">Learn to read the architecture</p>
@@ -267,9 +303,12 @@
                         <span class="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-medium">Studded door</span>
                     </div>
                 </div>
-                <div>
+                <div class="flex flex-wrap gap-3">
                     <a href="{{ route('page.show', 'history-culture') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-chaouen-900 text-sm font-bold hover:bg-sky-100 transition">
-                        History →
+                        Explore History →
+                    </a>
+                    <a href="{{ route('page.show', 'about') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 border border-white/25 text-white text-sm font-semibold hover:bg-white/20 transition">
+                        About Chefchaouen
                     </a>
                 </div>
             </div>

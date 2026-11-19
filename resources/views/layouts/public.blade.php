@@ -24,7 +24,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         tailwind.config = {
@@ -74,6 +74,53 @@
             border-bottom-left-radius: 14px;
             border-bottom-right-radius: 14px;
         }
+        /* Rich HTML typography for Public Pages, Blog Posts, Place & Route Descriptions */
+        .prose {
+            color: #334155;
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+        .prose > :first-child { margin-top: 0 !important; }
+        .prose > :last-child { margin-bottom: 0 !important; }
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            color: #0f172a;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 700;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+        .prose h1 { font-size: 2.25rem; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose h2 { font-size: 1.875rem; margin-top: 2rem; margin-bottom: 0.875rem; padding-bottom: 0.45rem; border-bottom: 1px solid #e2e8f0; color: #172554; }
+        .prose h3 { font-size: 1.45rem; margin-top: 1.6rem; margin-bottom: 0.65rem; color: #1e3a8a; }
+        .prose h4 { font-size: 1.2rem; margin-top: 1.35rem; margin-bottom: 0.5rem; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1e40af; }
+        .prose h5 { font-size: 1.05rem; margin-top: 1.15rem; margin-bottom: 0.4rem; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        .prose h6 { font-size: 0.95rem; margin-top: 1rem; margin-bottom: 0.35rem; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
+        .prose p { margin-top: 0.85rem; margin-bottom: 1rem; }
+        .prose strong, .prose b { font-weight: 700; color: #0f172a; }
+        .prose em, .prose i { font-style: italic; }
+        .prose u { text-decoration: underline; text-underline-offset: 3px; }
+        .prose a { color: #1d4ed8; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+        .prose a:hover { color: #1e3a8a; }
+        .prose ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-top: 0.85rem; margin-bottom: 1.15rem; }
+        .prose ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-top: 0.85rem; margin-bottom: 1.15rem; }
+        .prose li { margin-top: 0.4rem; margin-bottom: 0.4rem; }
+        .prose li::marker { color: #1d4ed8; font-weight: 700; }
+        .prose blockquote {
+            margin: 1.5rem 0;
+            padding: 1rem 1.25rem;
+            border-left: 4px solid #1d4ed8;
+            background: #eff6ff;
+            border-radius: 0 1rem 1rem 0;
+            color: #1e3a8a;
+            font-style: italic;
+        }
+        .prose hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+        .prose table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; overflow: hidden; border-radius: 0.75rem; border: 1px solid #e2e8f0; }
+        .prose thead { background: #eff6ff; }
+        .prose th { text-align: left; font-weight: 700; color: #1e3a8a; padding: 0.75rem 1rem; border-bottom: 1px solid #bfdbfe; }
+        .prose td { padding: 0.7rem 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        .prose img { border-radius: 1rem; margin: 1.25rem 0; max-width: 100%; height: auto; }
+        .prose code { background: #f1f5f9; color: #0f172a; padding: 0.15rem 0.4rem; border-radius: 0.375rem; font-size: 0.875em; }
         [x-cloak] { display: none !important; }
     </style>
 

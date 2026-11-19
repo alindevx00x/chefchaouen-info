@@ -80,8 +80,10 @@ class ChefchaouenPlatformTest extends TestCase
         $this->get('/map')->assertStatus(200)->assertSee('Places (')->assertSee('Directory (')->assertSee('Routes (')->assertDontSee('—');
         $this->get('/gallery')->assertStatus(200)->assertDontSee('—');
         $this->get('/blog')->assertStatus(200)->assertDontSee('—');
-        $this->get('/page/history-culture')->assertStatus(200)->assertSee('1471')->assertSee('Download')->assertDontSee('—');
-        $this->get('/page/about')->assertStatus(200)->assertDontSee('—');
+        $this->get('/page/history-culture')->assertStatus(200)->assertSee('1471')->assertSee('Download')->assertSee('Banu Rachid Emirate')->assertDontSee('—');
+        $this->get('/page/about')->assertStatus(200)->assertSee('More Than a Destination')->assertSee('.prose h2', false)->assertDontSee('—');
+        $this->get('/page/visit-plans')->assertStatus(200)->assertSee('One-Day Highlights Plan')->assertSee('<table>', false)->assertDontSee('—');
+        $this->get('/blog/living-history-chefchaouen-1471-to-andalusia')->assertStatus(200)->assertSee('<h2>', false)->assertSee('<strong>', false)->assertDontSee('—');
         $this->get('/page/cookie-policy')->assertStatus(200)->assertDontSee('—');
         $this->get('/faq')->assertStatus(200)->assertDontSee('—');
         $this->get('/contact')->assertStatus(200)->assertDontSee('—');
@@ -172,7 +174,7 @@ class ChefchaouenPlatformTest extends TestCase
 
     public function test_chefchaouen_guide_chatbot_answers_domain_questions_and_blocks_bypass_attempts(): void
     {
-        // Domain question
+        // Domain question (Akchour)
         $res = $this->postJson('/api/chatbot/ask', [
             'message' => 'How do I hike Akchour Waterfalls from Chefchaouen?',
         ]);
@@ -181,6 +183,19 @@ class ChefchaouenPlatformTest extends TestCase
             'blocked' => false,
         ]);
         $this->assertStringContainsString('Akchour', $res->json('reply'));
+
+        // Grounded knowledge base from AI Guide docs (taxi pricing & itineraries)
+        $taxiRes = $this->postJson('/api/chatbot/ask', [
+            'message' => 'What is the taxi price to Akchour and daily budget in Chefchaouen?',
+        ]);
+        $taxiRes->assertStatus(200)->assertJson(['success' => true, 'blocked' => false]);
+        $this->assertStringContainsString('20 MAD', $taxiRes->json('reply'));
+
+        $planRes = $this->postJson('/api/chatbot/ask', [
+            'message' => 'Give me a 2 day itinerary plan for Chefchaouen',
+        ]);
+        $planRes->assertStatus(200)->assertJson(['success' => true, 'blocked' => false]);
+        $this->assertStringContainsString('Outa el-Hammam', $planRes->json('reply'));
 
         // Prompt injection / off-topic bypass attempt
         $blocked = $this->postJson('/api/chatbot/ask', [
@@ -197,7 +212,15 @@ class ChefchaouenPlatformTest extends TestCase
         $this->get('/admin')->assertRedirect('/admin/login');
 
         $admin = User::where('email', 'admin@chefchaouen.info')->firstOrFail();
-        $this->actingAs($admin)->get('/admin')->assertStatus(200)->assertSee('Platform Overview');
+        $this->actingAs($admin)->get('/admin')
+            ->assertStatus(200)
+            ->assertSee('Platform Overview & Analytics')
+            ->assertSee('placesCategoryChart')
+            ->assertSee('neighborhoodChart')
+            ->assertSee('activityTrendChart')
+            ->assertSee('routesDifficultyChart')
+            ->assertSee('Top Rated Places in Directory')
+            ->assertSee('Recent AI Guide Chatbot Queries');
         $this->actingAs($admin)->get('/admin/settings?tab=ai')->assertStatus(200)->assertSee('Groq Cloud');
         $this->actingAs($admin)->get('/admin/pages')->assertStatus(200)->assertSee('History & Culture');
         $this->actingAs($admin)->get('/admin/newsletters/export')->assertStatus(200)->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
