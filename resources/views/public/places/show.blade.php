@@ -2,6 +2,70 @@
 
 @section('title', $place->title . ' | Chefchaouen.info')
 @section('meta_description', $place->short_description)
+@section('meta_keywords', implode(', ', array_filter([$place->title, $place->category->name ?? null, $place->neighborhood, 'Chefchaouen Morocco'])))
+@section('og_type', 'article')
+@section('og_image', asset($place->featured_image ?: '/images/gallery/medina-door.jpg'))
+@if($place->latitude && $place->longitude)
+    @section('geo_position', $place->latitude . ';' . $place->longitude)
+    @section('geo_icbm', $place->latitude . ', ' . $place->longitude)
+@endif
+
+@push('schema')
+    @php
+        $catSlug = $place->category->slug ?? '';
+        $schemaType = match ($catSlug) {
+            'hotels', 'riads-hotels' => 'LodgingBusiness',
+            'restaurants', 'cafes' => 'Restaurant',
+            'historical-places', 'hiking-nature' => 'TouristAttraction',
+            default => 'LocalBusiness',
+        };
+        $placeEntity = array_filter([
+            '@type' => $schemaType,
+            'name' => $place->title,
+            'description' => $place->short_description,
+            'url' => route('places.show', $place->slug),
+            'image' => asset($place->featured_image ?: '/images/gallery/medina-door.jpg'),
+            'priceRange' => $place->price_range ?: '$$',
+            'telephone' => $place->phone ?: null,
+            'email' => $place->email ?: null,
+            'address' => [
+                '@type' => 'PostalAddress',
+                'streetAddress' => $place->address ?: ($place->neighborhood ?: 'Medina'),
+                'addressLocality' => 'Chefchaouen',
+                'addressRegion' => 'Tanger-Tetouan-Al Hoceima',
+                'addressCountry' => 'MA',
+            ],
+            'geo' => ($place->latitude && $place->longitude) ? [
+                '@type' => 'GeoCoordinates',
+                'latitude' => $place->latitude,
+                'longitude' => $place->longitude,
+            ] : null,
+            'aggregateRating' => [
+                '@type' => 'AggregateRating',
+                'ratingValue' => number_format($place->rating_avg, 1),
+                'reviewCount' => max(1, (int) $place->reviews_count),
+            ],
+        ]);
+        $placeBreadcrumb = [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Places', 'item' => route('places.index')],
+        ];
+        if ($place->category) {
+            $placeBreadcrumb[] = ['@type' => 'ListItem', 'position' => 3, 'name' => $place->category->name, 'item' => route('places.index', ['category' => $place->category->slug])];
+            $placeBreadcrumb[] = ['@type' => 'ListItem', 'position' => 4, 'name' => $place->title, 'item' => route('places.show', $place->slug)];
+        } else {
+            $placeBreadcrumb[] = ['@type' => 'ListItem', 'position' => 3, 'name' => $place->title, 'item' => route('places.show', $place->slug)];
+        }
+        $placeSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                ['@type' => 'BreadcrumbList', 'itemListElement' => $placeBreadcrumb],
+                $placeEntity,
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($placeSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -37,21 +101,12 @@
                     @endif
                 </div>
 
-                <!-- Main Image + Album Grid -->
-                <div class="space-y-3">
-                    <div class="aspect-[16/9] rounded-3xl overflow-hidden bg-slate-100 shadow-sm border border-slate-200">
-                        <img src="{{ asset($place->featured_image ?: '/images/gallery/medina-door.jpg') }}" alt="{{ $place->title }}" class="w-full h-full object-cover">
-                    </div>
-                    @if(is_array($place->album_photos) && count($place->album_photos) > 0)
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            @foreach($place->album_photos as $photo)
-                                <div class="aspect-[4/3] rounded-2xl overflow-hidden border border-slate-200">
-                                    <img src="{{ asset($photo) }}" alt="{{ $place->title }} photo" class="w-full h-full object-cover">
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
+                <!-- Main Image + Clickable Album Gallery & Lightbox -->
+                @include('public.partials.media-gallery', [
+                    'featured' => $place->featured_image ?: '/images/gallery/medina-door.jpg',
+                    'album' => $place->album_photos ?? [],
+                    'title' => $place->title,
+                ])
 
                 <!-- Rich Description (TinyMCE HTML) -->
                 <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 prose prose-slate max-w-none">

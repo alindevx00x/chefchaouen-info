@@ -282,6 +282,17 @@ PROMPT;
         return false;
     }
 
+    protected function getCustomKnowledgeSnippets(): array
+    {
+        $raw = Setting::getValue('ai_custom_knowledge_items', '[]');
+        $items = json_decode((string) $raw, true);
+        if (!is_array($items)) {
+            return [];
+        }
+
+        return array_values(array_filter($items, fn ($item) => !empty($item['is_active']) && !empty($item['content'])));
+    }
+
     protected function buildDatabaseKnowledgeContext(string $query): string
     {
         $categories = PlaceCategory::where('is_active', true)->orderBy('sort_order')->pluck('name')->implode(', ');
@@ -310,6 +321,22 @@ PROMPT;
         $blogs = BlogPost::where('is_published', true)->latest('published_at')->take(8)->get()
             ->map(fn ($b) => "- Article: {$b->title} ({$b->excerpt})")
             ->implode("\n");
+
+        $customBulletin = trim((string) Setting::getValue('ai_system_instructions', ''));
+        $customSnippets = collect($this->getCustomKnowledgeSnippets())
+            ->map(fn ($item) => "- [{$item['category']}] {$item['title']}: {$item['content']}")
+            ->implode("\n");
+
+        $adminKnowledgeBlock = '';
+        if ($customBulletin !== '' || $customSnippets !== '') {
+            $adminKnowledgeBlock = "\nADMIN EDITORIAL NOTES & CUSTOM KNOWLEDGE BASE:\n";
+            if ($customBulletin !== '') {
+                $adminKnowledgeBlock .= "Seasonal Bulletin / Editorial Rules: {$customBulletin}\n";
+            }
+            if ($customSnippets !== '') {
+                $adminKnowledgeBlock .= $customSnippets . "\n";
+            }
+        }
 
         $localGuideKnowledge = <<<GUIDE
 CHEFCHAOUEN AI GUIDE LOCAL KNOWLEDGE BASE:
@@ -356,12 +383,34 @@ FAQs:
 
 RECENT BLOG STORIES:
 {$blogs}
+{$adminKnowledgeBlock}
 CTX;
     }
 
     protected function generateGroundedFallbackResponse(string $query): string
     {
         $lower = mb_strtolower($query);
+
+        // Check Admin Custom Knowledge Base snippets first if query closely matches one
+        $terms = array_filter(explode(' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $lower)), fn ($t) => mb_strlen($t) > 2);
+        $bestSnippet = null;
+        $bestScore = 0;
+        foreach ($this->getCustomKnowledgeSnippets() as $snippet) {
+            $haystack = mb_strtolower(($snippet['title'] ?? '') . ' ' . ($snippet['category'] ?? '') . ' ' . ($snippet['content'] ?? ''));
+            $score = 0;
+            foreach ($terms as $t) {
+                if (str_contains($haystack, $t)) {
+                    $score += (str_contains(mb_strtolower($snippet['title'] ?? ''), $t) ? 3 : 1);
+                }
+            }
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestSnippet = $snippet;
+            }
+        }
+        if ($bestSnippet && $bestScore >= 2) {
+            return "**{$bestSnippet['title']}** (*{$bestSnippet['category']}*):\n\n{$bestSnippet['content']}\n\nAsk another question or browse our [Interactive Map](/map) and [Places Directory](/places).";
+        }
 
         if (str_contains($lower, 'taxi') || str_contains($lower, 'bus') || str_contains($lower, 'get to') || str_contains($lower, 'arrive') || str_contains($lower, 'tangier') || str_contains($lower, 'tetouan') || str_contains($lower, 'fes') || str_contains($lower, 'fez') || str_contains($lower, 'price') || str_contains($lower, 'budget') || str_contains($lower, 'cost') || str_contains($lower, 'dirham') || str_contains($lower, 'طاكسي') || str_contains($lower, 'ثمن') || str_contains($lower, 'الوصول')) {
             return "Here is practical transport and budget info for visiting **Chefchaouen**:\n\n"

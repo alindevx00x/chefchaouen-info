@@ -1,6 +1,31 @@
 @extends('layouts.public')
 
 @section('title', 'Chefchaouen Photo Gallery | Chefchaouen.info')
+@section('meta_description', 'Browse high-resolution photography of Chefchaouen cobalt alleys, Andalusian doors, Ras El Maa waterfall, Akchour cascades, and the Rif peaks.')
+@section('meta_keywords', 'Chefchaouen photography, Blue Pearl gallery, Derb El Asri photos, Akchour waterfalls images')
+
+@push('schema')
+    @php
+        $gallerySchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Photo Gallery', 'item' => route('gallery.index')],
+                    ],
+                ],
+                [
+                    '@type' => 'ImageGallery',
+                    'name' => 'Chefchaouen Photo Gallery',
+                    'url' => route('gallery.index'),
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($gallerySchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="bg-chaouen-900 text-white py-14">

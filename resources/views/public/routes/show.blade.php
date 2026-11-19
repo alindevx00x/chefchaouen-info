@@ -2,6 +2,53 @@
 
 @section('title', $route->title . ' | Tourist Routes | Chefchaouen.info')
 @section('meta_description', $route->short_description)
+@section('meta_keywords', implode(', ', array_filter([$route->title, $route->title_ar, 'Chefchaouen hiking route', $route->route_type_label, $route->start_point, $route->end_point, 'Rif Mountains'])))
+@section('og_type', 'article')
+@section('og_image', asset($route->featured_image ?: '/images/gallery/rif-mountains.jpg'))
+@if($route->latitude && $route->longitude)
+    @section('geo_position', $route->latitude . ';' . $route->longitude)
+    @section('geo_icbm', $route->latitude . ', ' . $route->longitude)
+@endif
+
+@push('schema')
+    @php
+        $routeSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Tourist Routes', 'item' => route('routes.index')],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $route->title, 'item' => route('routes.show', $route->slug)],
+                    ],
+                ],
+                [
+                    '@type' => 'TouristTrip',
+                    'name' => $route->title,
+                    'description' => $route->short_description,
+                    'url' => route('routes.show', $route->slug),
+                    'image' => asset($route->featured_image ?: '/images/gallery/rif-mountains.jpg'),
+                    'touristType' => [$route->route_type_label, 'Hikers', 'Cultural Travelers'],
+                    'itinerary' => [
+                        '@type' => 'ItemList',
+                        'itemListElement' => array_map(fn ($wp, $i) => [
+                            '@type' => 'ListItem',
+                            'position' => $i + 1,
+                            'name' => $wp,
+                        ], is_array($route->waypoints) && count($route->waypoints) > 0 ? $route->waypoints : array_filter([$route->start_point, $route->end_point]), array_keys(is_array($route->waypoints) && count($route->waypoints) > 0 ? $route->waypoints : array_filter([$route->start_point, $route->end_point]))),
+                    ],
+                    'aggregateRating' => [
+                        '@type' => 'AggregateRating',
+                        'ratingValue' => number_format($route->rating_avg, 1),
+                        'reviewCount' => max(1, (int) $route->reviews_count),
+                    ],
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($routeSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -31,21 +78,12 @@
                     <p class="text-base text-slate-600 mt-2.5 leading-relaxed">{{ $route->short_description }}</p>
                 </div>
 
-                <!-- Photo Album -->
-                <div class="space-y-3">
-                    <div class="aspect-[16/9] rounded-3xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
-                        <img src="{{ asset($route->featured_image ?: '/images/gallery/rif-mountains.jpg') }}" alt="{{ $route->title }}" class="w-full h-full object-cover">
-                    </div>
-                    @if(is_array($route->album_photos) && count($route->album_photos) > 0)
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            @foreach($route->album_photos as $photo)
-                                <div class="aspect-[4/3] rounded-2xl overflow-hidden border border-slate-200">
-                                    <img src="{{ asset($photo) }}" alt="{{ $route->title }}" class="w-full h-full object-cover">
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
+                <!-- Clickable Photo Gallery & Lightbox -->
+                @include('public.partials.media-gallery', [
+                    'featured' => $route->featured_image ?: '/images/gallery/rif-mountains.jpg',
+                    'album' => $route->album_photos ?? [],
+                    'title' => $route->title,
+                ])
 
                 <!-- Google Map From -> To -->
                 <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8">

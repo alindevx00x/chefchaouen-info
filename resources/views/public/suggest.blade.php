@@ -40,6 +40,7 @@
             <!-- Place Suggestion Form -->
             <form x-show="kind === 'place'" action="{{ route('suggest.submit') }}" method="POST" class="space-y-5">
                 @csrf
+                @include('public.partials.honeypot')
                 <input type="hidden" name="suggestion_type" value="place">
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -117,6 +118,7 @@
             <!-- Route Suggestion Form -->
             <form x-show="kind === 'route'" x-cloak action="{{ route('suggest.submit') }}" method="POST" class="space-y-5">
                 @csrf
+                @include('public.partials.honeypot')
                 <input type="hidden" name="suggestion_type" value="route">
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

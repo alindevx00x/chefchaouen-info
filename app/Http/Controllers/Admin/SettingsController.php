@@ -8,6 +8,7 @@ use App\Models\Faq;
 use App\Models\Setting;
 use App\Services\AiService;
 use App\Services\DynamicMailService;
+use App\Services\SeoFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -19,8 +20,12 @@ class SettingsController extends Controller
         $settings = Setting::pluck('value', 'key')->toArray();
         $aiProviders = AiProvider::orderByDesc('is_default')->orderBy('id')->get();
         $faqs = Faq::orderBy('sort_order')->get();
+        $knowledgeItems = json_decode((string) ($settings['ai_custom_knowledge_items'] ?? '[]'), true);
+        if (!is_array($knowledgeItems)) {
+            $knowledgeItems = [];
+        }
 
-        return view('admin.settings.index', compact('tab', 'settings', 'aiProviders', 'faqs'));
+        return view('admin.settings.index', compact('tab', 'settings', 'aiProviders', 'faqs', 'knowledgeItems'));
     }
 
     public function updateGeneral(Request $request)
@@ -239,12 +244,108 @@ class SettingsController extends Controller
             'is_active' => true,
         ]);
 
+        SeoFeedService::flushCaches();
+
         return redirect()->route('admin.settings.index', ['tab' => 'faqs'])->with('success', 'FAQ added.');
     }
 
     public function destroyFaq(Faq $faq)
     {
         $faq->delete();
+        SeoFeedService::flushCaches();
         return redirect()->route('admin.settings.index', ['tab' => 'faqs'])->with('success', 'FAQ deleted.');
+    }
+
+    public function updateKnowledgeInstructions(Request $request)
+    {
+        $data = $request->validate([
+            'ai_system_instructions' => 'nullable|string|max:5000',
+        ]);
+
+        Setting::setValue('ai_system_instructions', trim((string) ($data['ai_system_instructions'] ?? '')), 'ai');
+
+        return redirect()->route('admin.settings.index', ['tab' => 'knowledge'])
+            ->with('success', 'AI Guide custom system instructions & seasonal bulletin updated.');
+    }
+
+    public function storeKnowledgeEntry(Request $request)
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:180',
+            'category' => 'required|string|max:80',
+            'content' => 'nullable|string|max:8000',
+            'knowledge_file' => 'nullable|file|mimes:txt,md,csv|max:1024',
+        ]);
+
+        $content = trim((string) ($data['content'] ?? ''));
+        $source = 'Manual Entry';
+
+        if ($request->hasFile('knowledge_file')) {
+            $file = $request->file('knowledge_file');
+            $raw = trim((string) file_get_contents($file->getRealPath()));
+            if ($raw !== '') {
+                $content = $content !== '' ? $content . "\n\n" . Str::limit($raw, 8000, '') : Str::limit($raw, 8000, '');
+                $source = 'File: ' . $file->getClientOriginalName();
+            }
+        }
+
+        if ($content === '') {
+            return redirect()->route('admin.settings.index', ['tab' => 'knowledge'])
+                ->withErrors(['content' => 'Please enter knowledge content or upload a .txt / .md / .csv file.']);
+        }
+
+        $items = json_decode((string) Setting::getValue('ai_custom_knowledge_items', '[]'), true);
+        if (!is_array($items)) {
+            $items = [];
+        }
+
+        array_unshift($items, [
+            'id' => (string) Str::uuid(),
+            'title' => $data['title'],
+            'category' => $data['category'],
+            'content' => $content,
+            'source' => $source,
+            'is_active' => true,
+            'created_at' => now()->toDateTimeString(),
+        ]);
+
+        Setting::setValue('ai_custom_knowledge_items', json_encode(array_values($items), JSON_UNESCAPED_UNICODE), 'ai');
+
+        return redirect()->route('admin.settings.index', ['tab' => 'knowledge'])
+            ->with('success', 'Knowledge snippet added to Chefchaouen Guide AI.');
+    }
+
+    public function toggleKnowledgeEntry(string $entryId)
+    {
+        $items = json_decode((string) Setting::getValue('ai_custom_knowledge_items', '[]'), true);
+        if (!is_array($items)) {
+            $items = [];
+        }
+
+        foreach ($items as &$item) {
+            if (($item['id'] ?? '') === $entryId) {
+                $item['is_active'] = !($item['is_active'] ?? true);
+            }
+        }
+        unset($item);
+
+        Setting::setValue('ai_custom_knowledge_items', json_encode(array_values($items), JSON_UNESCAPED_UNICODE), 'ai');
+
+        return redirect()->route('admin.settings.index', ['tab' => 'knowledge'])
+            ->with('success', 'Knowledge snippet status updated.');
+    }
+
+    public function destroyKnowledgeEntry(string $entryId)
+    {
+        $items = json_decode((string) Setting::getValue('ai_custom_knowledge_items', '[]'), true);
+        if (!is_array($items)) {
+            $items = [];
+        }
+
+        $filtered = array_values(array_filter($items, fn ($item) => ($item['id'] ?? '') !== $entryId));
+        Setting::setValue('ai_custom_knowledge_items', json_encode($filtered, JSON_UNESCAPED_UNICODE), 'ai');
+
+        return redirect()->route('admin.settings.index', ['tab' => 'knowledge'])
+            ->with('success', 'Knowledge snippet removed.');
     }
 }

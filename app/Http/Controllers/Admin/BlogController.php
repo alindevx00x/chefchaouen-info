@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
+use App\Services\SeoFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -49,6 +50,7 @@ class BlogController extends Controller
     public function destroy(BlogPost $post)
     {
         $post->delete();
+        SeoFeedService::flushCaches();
         return back()->with('success', 'Blog post deleted.');
     }
 
@@ -88,7 +90,7 @@ class BlogController extends Controller
             'meta_description' => 'nullable|string|max:500',
         ]);
 
-        $featuredImage = $data['featured_image_url'] ?: ($post->featured_image ?: '/images/gallery/blue-stairs.jpg');
+        $featuredImage = ($data['featured_image_url'] ?? null) ?: ($post->featured_image ?: '/images/gallery/blue-stairs.jpg');
         if ($request->hasFile('featured_image_file')) {
             $featuredImage = '/storage/' . $request->file('featured_image_file')->store('uploads/blog', 'public');
         }
@@ -113,5 +115,7 @@ class BlogController extends Controller
             'is_published' => $request->boolean('is_published'),
             'published_at' => $post->published_at ?: now(),
         ])->save();
+
+        SeoFeedService::flushCaches();
     }
 }

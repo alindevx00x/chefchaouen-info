@@ -5,15 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Place;
 use App\Models\PlaceCategory;
+use App\Services\SeoFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PlaceController extends Controller
 {
-    public function index(Request $request)
+    protected function applyFilters($query, Request $request): void
     {
-        $query = Place::with('category');
-
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -24,11 +23,73 @@ class PlaceController extends Controller
             $term = '%' . $request->q . '%';
             $query->where(fn ($q) => $q->where('title', 'like', $term)->orWhere('suggested_by_name', 'like', $term));
         }
+    }
+
+    public function index(Request $request)
+    {
+        $query = Place::with('category');
+        $this->applyFilters($query, $request);
 
         $places = $query->latest()->paginate(15)->withQueryString();
         $categories = PlaceCategory::orderBy('sort_order')->get();
 
         return view('admin.places.index', compact('places', 'categories'));
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $query = Place::with('category');
+        $this->applyFilters($query, $request);
+        $places = $query->latest()->get();
+
+        return response()->streamDownload(function () use ($places) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'Title', 'Slug', 'Category', 'Neighborhood', 'Price Range', 'Opening Hours', 'Phone', 'Email', 'Website', 'Status', 'Rating Avg', 'Reviews Count', 'Created At']);
+            foreach ($places as $p) {
+                fputcsv($out, [
+                    $p->id,
+                    $p->title,
+                    $p->slug,
+                    $p->category->name ?? '',
+                    $p->neighborhood,
+                    $p->price_range,
+                    $p->opening_hours,
+                    $p->phone,
+                    $p->email,
+                    $p->website,
+                    $p->status,
+                    $p->rating_avg,
+                    $p->reviews_count,
+                    optional($p->created_at)->toDateTimeString(),
+                ]);
+            }
+            fclose($out);
+        }, 'chefchaouen-places-' . now()->format('Y-m-d') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $data = $request->validate([
+            'action' => 'required|in:publish,draft,archive,delete',
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:places,id',
+        ]);
+
+        $count = count($data['ids']);
+        if ($data['action'] === 'publish') {
+            Place::whereIn('id', $data['ids'])->update(['status' => 'published']);
+            $msg = "{$count} place(s) published.";
+        } elseif (in_array($data['action'], ['draft', 'archive'], true)) {
+            Place::whereIn('id', $data['ids'])->update(['status' => 'draft']);
+            $msg = "{$count} place(s) moved to draft.";
+        } else {
+            Place::whereIn('id', $data['ids'])->delete();
+            $msg = "{$count} place(s) deleted.";
+        }
+
+        SeoFeedService::flushCaches();
+
+        return back()->with('success', $msg);
     }
 
     public function create()
@@ -59,12 +120,14 @@ class PlaceController extends Controller
     public function publish(Place $place)
     {
         $place->update(['status' => 'published']);
+        SeoFeedService::flushCaches();
         return back()->with('success', "'{$place->title}' is now published.");
     }
 
     public function destroy(Place $place)
     {
         $place->delete();
+        SeoFeedService::flushCaches();
         return back()->with('success', 'Place deleted successfully.');
     }
 
@@ -98,14 +161,14 @@ class PlaceController extends Controller
             'status' => 'required|in:published,draft,pending',
         ]);
 
-        $featuredImage = $data['featured_image_url'] ?: ($place->featured_image ?: '/images/gallery/medina-door.jpg');
+        $featuredImage = ($data['featured_image_url'] ?? null) ?: ($place->featured_image ?: '/images/gallery/medina-door.jpg');
         if ($request->hasFile('featured_image_file')) {
             $featuredImage = '/storage/' . $request->file('featured_image_file')->store('uploads/places', 'public');
         }
 
         $album = [];
-        if ($request->filled('album_photos_urls')) {
-            $album = array_values(array_filter(array_map('trim', explode("\n", $data['album_photos_urls']))));
+        if ($request->boolean('album_photos_submitted') || $request->filled('album_photos_urls')) {
+            $album = array_values(array_filter(array_map('trim', explode("\n", (string) ($data['album_photos_urls'] ?? '')))));
         } elseif (!$isNew && is_array($place->album_photos)) {
             $album = $place->album_photos;
         }
@@ -156,5 +219,7 @@ class PlaceController extends Controller
             'is_hidden_gem' => $request->boolean('is_hidden_gem'),
             'status' => $data['status'],
         ])->save();
+
+        SeoFeedService::flushCaches();
     }
 }

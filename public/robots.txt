@@ -1,2 +1,61 @@
+# Chefchaouen.info Robots Policy (SEO, GEO & AI Search Optimized)
+# Reference Sitemap & AI Knowledge Guide below
+
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /login
+Disallow: /api/
+Disallow: /storage/framework/
+Disallow: /vendor/
+
+# Major Search Engines
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+# AI Search & Generative Engine Optimization (GEO / AISEO) Crawlers
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+Sitemap: https://chefchaouen.info/sitemap.xml
+# LLMs & AI Engine Directory Index: https://chefchaouen.info/llms.txt

@@ -1,6 +1,31 @@
 @extends('layouts.public')
 
 @section('title', 'Chefchaouen Journal & Travel Stories | Chefchaouen.info')
+@section('meta_description', 'Read travel stories, cultural history guides from 1471, Rif trekking notes, and insider tips for exploring Chefchaouen, Morocco.')
+@section('meta_keywords', 'Chefchaouen travel blog, Chefchaouen history 1471, Rif hiking notes, Blue Pearl stories')
+
+@push('schema')
+    @php
+        $blogIndexSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Journal', 'item' => route('blog.index')],
+                    ],
+                ],
+                [
+                    '@type' => 'Blog',
+                    'name' => 'Chefchaouen Journal & Travel Stories',
+                    'url' => route('blog.index'),
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($blogIndexSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="bg-chaouen-900 text-white py-14">

@@ -63,19 +63,12 @@
             <textarea name="description" class="tinymce-editor">{{ old('description', $place->description) }}</textarea>
         </div>
 
-        <!-- Images -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Featured Image (Upload)</label>
-                <input type="file" name="featured_image_file" accept="image/*" class="w-full text-xs mb-2">
-                <input type="text" name="featured_image_url" value="{{ old('featured_image_url', $place->featured_image) }}" placeholder="/images/gallery/medina-door.jpg" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Album Photos (Upload Multiple or 1 URL per line)</label>
-                <input type="file" name="album_photos_files[]" multiple accept="image/*" class="w-full text-xs mb-2">
-                <textarea name="album_photos_urls" rows="3" placeholder="/images/gallery/hero-medina.jpg" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs">{{ is_array($place->album_photos) ? implode("\n", $place->album_photos) : '' }}</textarea>
-            </div>
-        </div>
+        <!-- Featured & Reorderable Gallery Album Images -->
+        @include('admin.partials.album-manager', [
+            'featured' => $place->featured_image,
+            'album' => $place->album_photos,
+            'fallback' => '/images/gallery/medina-door.jpg',
+        ])
 
         <!-- Contact & Location Details -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100">

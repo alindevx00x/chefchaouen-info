@@ -378,4 +378,216 @@ class ChefchaouenPlatformTest extends TestCase
             ->assertRedirect();
         $this->assertSame(0, \App\Models\ChatbotLog::count());
     }
+
+    public function test_dynamic_sitemap_robots_llms_seo_geo_and_clickable_gallery_work(): void
+    {
+        // 1. Enhanced robots.txt
+        $robots = file_get_contents(public_path('robots.txt'));
+        $this->assertIsString($robots);
+        $this->assertStringContainsString('Sitemap: https://chefchaouen.info/sitemap.xml', $robots);
+        $this->assertStringContainsString('Disallow: /admin', $robots);
+        $this->assertStringContainsString('GPTBot', $robots);
+        $this->assertStringContainsString('PerplexityBot', $robots);
+
+        // 2. Dynamic cached /sitemap.xml
+        $sitemapRes = $this->get('/sitemap.xml');
+        $sitemapRes->assertStatus(200);
+        $this->assertStringContainsString('application/xml', (string) $sitemapRes->headers->get('content-type'));
+        $sitemapXml = $sitemapRes->getContent();
+        $this->assertStringContainsString('<urlset', $sitemapXml);
+        $this->assertStringContainsString('/places/restaurant-bab-ssour', $sitemapXml);
+        $this->assertStringContainsString('/routes/akchour-waterfalls-route', $sitemapXml);
+        $this->assertStringContainsString('/page/history-culture', $sitemapXml);
+        $this->assertStringContainsString('/map', $sitemapXml);
+
+        // 3. Dynamic /llms.txt for AISEO / GEO engines
+        $llmsRes = $this->get('/llms.txt');
+        $llmsRes->assertStatus(200);
+        $this->assertStringContainsString('text/plain', (string) $llmsRes->headers->get('content-type'));
+        $this->assertStringContainsString('35.1688 N, -5.2636 W', $llmsRes->getContent());
+        $this->assertStringContainsString('/routes/akchour-waterfalls-route', $llmsRes->getContent());
+
+        // 4. Full SEO/GEO/AISEO meta, JSON-LD, Chatbot localStorage persistence, and clickable gallery on routes/places/map
+        $home = $this->get('/');
+        $home->assertStatus(200)
+            ->assertSee('<link rel="canonical"', false)
+            ->assertSee('<link rel="sitemap"', false)
+            ->assertSee('<link rel="alternate" type="text/plain" title="LLMs Guide"', false)
+            ->assertSee('name="geo.region" content="MA-01"', false)
+            ->assertSee('name="geo.position" content="35.1688;-5.2636"', false)
+            ->assertSee('application/ld+json', false)
+            ->assertSee('TouristDestination', false)
+            ->assertSee('SearchAction', false)
+            ->assertSee('chefchaouen_chat_history_v1', false)
+            ->assertSee('clearChefchaouenChat()', false)
+            ->assertDontSee('—');
+
+        $routePage = $this->get('/routes/akchour-waterfalls-route');
+        $routePage->assertStatus(200)
+            ->assertSee('TouristTrip', false)
+            ->assertSee('openLightbox(', false)
+            ->assertSee('View photo ', false)
+            ->assertDontSee('—');
+
+        $placePage = $this->get('/places/restaurant-bab-ssour');
+        $placePage->assertStatus(200)
+            ->assertSee('BreadcrumbList', false)
+            ->assertSee('openLightbox(', false)
+            ->assertDontSee('—');
+
+        $mapPage = $this->get('/map');
+        $mapPage->assertStatus(200)
+            ->assertSee("Understanding Chefchaouen's Layout: Gates, Quarters & Mountain Trails", false)
+            ->assertSee('Common Chefchaouen Map Questions')
+            ->assertSee('FAQPage', false)
+            ->assertDontSee('—');
+    }
+
+    public function test_honeypot_and_rate_limiting_protect_public_endpoints(): void
+    {
+        // Honeypot silently drops spam contact submission without saving
+        $this->post('/contact', [
+            'website_hp' => 'https://spam-bot.invalid',
+            'name' => 'Bot Spammer',
+            'email' => 'bot@spam.invalid',
+            'subject' => 'Buy Backlinks',
+            'message' => 'This automated message should never reach the database.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('contact_submissions', [
+            'email' => 'bot@spam.invalid',
+        ]);
+
+        // Honeypot silently drops spam newsletter subscription
+        $this->post('/newsletter', [
+            'website_hp' => 'spam-filled',
+            'email' => 'bot-newsletter@spam.invalid',
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('newsletters', [
+            'email' => 'bot-newsletter@spam.invalid',
+        ]);
+
+        // Throttle enforcement on /contact (6 requests/minute total, including the honeypot attempt above)
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/contact', [
+                'name' => 'Valid Traveler',
+                'email' => 'valid@example.com',
+                'subject' => 'Question ' . $i,
+                'message' => 'Checking bus arrival time in Chefchaouen.',
+            ])->assertRedirect();
+        }
+
+        $this->post('/contact', [
+            'name' => 'Rate Limited',
+            'email' => 'valid@example.com',
+            'subject' => 'Too fast',
+            'message' => 'Seventh request within one minute should trigger 429.',
+        ])->assertStatus(429);
+    }
+
+    public function test_admin_can_manage_knowledge_base_bulk_actions_and_gallery_order(): void
+    {
+        $admin = User::where('email', 'admin@chefchaouen.info')->firstOrFail();
+
+        // 1. Chatbot Knowledge Base Manager UI + Instructions + Snippet Upload
+        $this->actingAs($admin)
+            ->get('/admin/settings?tab=knowledge')
+            ->assertStatus(200)
+            ->assertSee('Chatbot Knowledge Base');
+
+        $this->actingAs($admin)
+            ->post('/admin/settings/knowledge/instructions', [
+                'ai_system_instructions' => 'Mention the Autumn Andalusian Music Nights in Outa el-Hammam.',
+            ])
+            ->assertRedirect('/admin/settings?tab=knowledge');
+
+        $docFile = UploadedFile::fake()->createWithContent(
+            'festival-update.txt',
+            'Special Olive Harvest Fair in Sebbanine runs Friday through Sunday with 15 MAD shuttle rides.'
+        );
+
+        $this->actingAs($admin)
+            ->post('/admin/settings/knowledge', [
+                'title' => 'Sebbanine Harvest Shuttle & Olive Fair',
+                'category' => 'Events & Festivals',
+                'content' => 'Local artisan oil tastings happen near the Granada water mills.',
+                'knowledge_file' => $docFile,
+            ])
+            ->assertRedirect('/admin/settings?tab=knowledge');
+
+        $chatRes = $this->postJson('/api/chatbot/ask', [
+            'message' => 'Tell me about the Sebbanine Harvest Shuttle and Olive Fair',
+        ]);
+        $chatRes->assertStatus(200)->assertJson(['success' => true, 'blocked' => false]);
+        $this->assertStringContainsString('15 MAD shuttle rides', $chatRes->json('reply'));
+
+        // Toggle & Delete knowledge item
+        $items = json_decode((string) Setting::getValue('ai_custom_knowledge_items', '[]'), true);
+        $this->assertNotEmpty($items);
+        $entryId = $items[0]['id'];
+
+        $this->actingAs($admin)
+            ->post('/admin/settings/knowledge/' . $entryId . '/toggle')
+            ->assertRedirect('/admin/settings?tab=knowledge');
+
+        $this->actingAs($admin)
+            ->delete('/admin/settings/knowledge/' . $entryId)
+            ->assertRedirect('/admin/settings?tab=knowledge');
+
+        $itemsAfterDelete = json_decode((string) Setting::getValue('ai_custom_knowledge_items', '[]'), true);
+        $this->assertEmpty($itemsAfterDelete);
+
+        // 2. Place Multi-Image Reordering & Removal + Sitemap Cache Invalidation
+        $place = Place::where('slug', 'restaurant-bab-ssour')->firstOrFail();
+        $reorderedUrls = "/images/gallery/kasbah.jpg\n/images/gallery/hero-medina.jpg";
+        $this->actingAs($admin)
+            ->put('/admin/places/' . $place->id, [
+                'place_category_id' => $place->place_category_id,
+                'title' => $place->title,
+                'status' => 'published',
+                'album_photos_submitted' => '1',
+                'album_photos_urls' => $reorderedUrls,
+            ])
+            ->assertRedirect('/admin/places');
+
+        $this->assertSame(['/images/gallery/kasbah.jpg', '/images/gallery/hero-medina.jpg'], $place->fresh()->album_photos);
+
+        // 3. Bulk Actions & CSV Export for Places and Routes
+        $cat = PlaceCategory::firstOrFail();
+        $draftPlace = Place::create([
+            'place_category_id' => $cat->id,
+            'title' => 'Bulk Test Terrace',
+            'slug' => 'bulk-test-terrace',
+            'short_description' => 'Test rooftop for bulk publish.',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($admin)
+            ->post('/admin/places/bulk', [
+                'action' => 'publish',
+                'ids' => [$draftPlace->id],
+            ])
+            ->assertRedirect();
+        $this->assertSame('published', $draftPlace->fresh()->status);
+
+        // Published place should appear right away in refreshed /sitemap.xml
+        $this->assertStringContainsString('/places/bulk-test-terrace', $this->get('/sitemap.xml')->getContent());
+
+        $this->actingAs($admin)
+            ->post('/admin/places/bulk', [
+                'action' => 'delete',
+                'ids' => [$draftPlace->id],
+            ])
+            ->assertRedirect();
+        $this->assertDatabaseMissing('places', ['id' => $draftPlace->id]);
+
+        $placeCsv = $this->actingAs($admin)->get('/admin/places/export');
+        $placeCsv->assertStatus(200);
+        $this->assertStringContainsString('text/csv', (string) $placeCsv->headers->get('content-type'));
+
+        $routeCsv = $this->actingAs($admin)->get('/admin/routes/export');
+        $routeCsv->assertStatus(200);
+        $this->assertStringContainsString('text/csv', (string) $routeCsv->headers->get('content-type'));
+    }
 }

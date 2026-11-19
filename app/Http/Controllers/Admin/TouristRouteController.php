@@ -4,15 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TouristRoute;
+use App\Services\SeoFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class TouristRouteController extends Controller
 {
-    public function index(Request $request)
+    protected function applyFilters($query, Request $request): void
     {
-        $query = TouristRoute::query();
-
         if ($request->filled('route_type')) {
             $query->where('route_type', $request->route_type);
         }
@@ -23,9 +22,71 @@ class TouristRouteController extends Controller
             $term = '%' . $request->q . '%';
             $query->where(fn ($q) => $q->where('title', 'like', $term)->orWhere('suggested_by_name', 'like', $term));
         }
+    }
+
+    public function index(Request $request)
+    {
+        $query = TouristRoute::query();
+        $this->applyFilters($query, $request);
 
         $routes = $query->latest()->paginate(15)->withQueryString();
         return view('admin.routes.index', compact('routes'));
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $query = TouristRoute::query();
+        $this->applyFilters($query, $request);
+        $routes = $query->latest()->get();
+
+        return response()->streamDownload(function () use ($routes) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'Title', 'Arabic Title', 'Slug', 'Type', 'Difficulty', 'Walking Time', 'Distance', 'Start Point', 'End Point', 'Status', 'Rating Avg', 'Reviews Count', 'Created At']);
+            foreach ($routes as $r) {
+                fputcsv($out, [
+                    $r->id,
+                    $r->title,
+                    $r->title_ar,
+                    $r->slug,
+                    $r->route_type_label,
+                    $r->difficulty,
+                    $r->estimated_walking_time,
+                    $r->distance_km,
+                    $r->start_point,
+                    $r->end_point,
+                    $r->status,
+                    $r->rating_avg,
+                    $r->reviews_count,
+                    optional($r->created_at)->toDateTimeString(),
+                ]);
+            }
+            fclose($out);
+        }, 'chefchaouen-routes-' . now()->format('Y-m-d') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $data = $request->validate([
+            'action' => 'required|in:publish,draft,archive,delete',
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:tourist_routes,id',
+        ]);
+
+        $count = count($data['ids']);
+        if ($data['action'] === 'publish') {
+            TouristRoute::whereIn('id', $data['ids'])->update(['status' => 'published']);
+            $msg = "{$count} route(s) published.";
+        } elseif (in_array($data['action'], ['draft', 'archive'], true)) {
+            TouristRoute::whereIn('id', $data['ids'])->update(['status' => 'draft']);
+            $msg = "{$count} route(s) moved to draft.";
+        } else {
+            TouristRoute::whereIn('id', $data['ids'])->delete();
+            $msg = "{$count} route(s) deleted.";
+        }
+
+        SeoFeedService::flushCaches();
+
+        return back()->with('success', $msg);
     }
 
     public function create()
@@ -56,12 +117,14 @@ class TouristRouteController extends Controller
     public function publish(TouristRoute $route)
     {
         $route->update(['status' => 'published']);
+        SeoFeedService::flushCaches();
         return back()->with('success', "Route '{$route->title}' is now published.");
     }
 
     public function destroy(TouristRoute $route)
     {
         $route->delete();
+        SeoFeedService::flushCaches();
         return back()->with('success', 'Tourist route deleted.');
     }
 
@@ -95,14 +158,14 @@ class TouristRouteController extends Controller
             'status' => 'required|in:published,draft,pending',
         ]);
 
-        $featuredImage = $data['featured_image_url'] ?: ($route->featured_image ?: '/images/gallery/rif-mountains.jpg');
+        $featuredImage = ($data['featured_image_url'] ?? null) ?: ($route->featured_image ?: '/images/gallery/rif-mountains.jpg');
         if ($request->hasFile('featured_image_file')) {
             $featuredImage = '/storage/' . $request->file('featured_image_file')->store('uploads/routes', 'public');
         }
 
         $album = [];
-        if ($request->filled('album_photos_urls')) {
-            $album = array_values(array_filter(array_map('trim', explode("\n", $data['album_photos_urls']))));
+        if ($request->boolean('album_photos_submitted') || $request->filled('album_photos_urls')) {
+            $album = array_values(array_filter(array_map('trim', explode("\n", (string) ($data['album_photos_urls'] ?? '')))));
         } elseif (!$isNew && is_array($route->album_photos)) {
             $album = $route->album_photos;
         }
@@ -144,5 +207,7 @@ class TouristRouteController extends Controller
             'is_featured' => $request->boolean('is_featured'),
             'status' => $data['status'],
         ])->save();
+
+        SeoFeedService::flushCaches();
     }
 }

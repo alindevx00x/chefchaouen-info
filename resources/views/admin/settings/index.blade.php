@@ -9,6 +9,7 @@
         <a href="{{ route('admin.settings.index', ['tab' => 'email']) }}" class="px-4 py-2 rounded-xl text-xs font-bold {{ $tab === 'email' ? 'bg-chaouen-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">✉️ Email (SMTP / Brevo)</a>
         <a href="{{ route('admin.settings.index', ['tab' => 'seo']) }}" class="px-4 py-2 rounded-xl text-xs font-bold {{ $tab === 'seo' ? 'bg-chaouen-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">🔍 Full SEO & Code Injection</a>
         <a href="{{ route('admin.settings.index', ['tab' => 'ai']) }}" class="px-4 py-2 rounded-xl text-xs font-bold {{ $tab === 'ai' ? 'bg-chaouen-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">🤖 AI Models & Chatbot</a>
+        <a href="{{ route('admin.settings.index', ['tab' => 'knowledge']) }}" class="px-4 py-2 rounded-xl text-xs font-bold {{ $tab === 'knowledge' ? 'bg-chaouen-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">📚 Chatbot Knowledge Base ({{ count($knowledgeItems ?? []) }})</a>
         <a href="{{ route('admin.settings.index', ['tab' => 'faqs']) }}" class="px-4 py-2 rounded-xl text-xs font-bold {{ $tab === 'faqs' ? 'bg-chaouen-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">❓ FAQs</a>
     </div>
 
@@ -259,8 +260,13 @@
                     <p class="text-xs text-chaouen-100 mt-0.5">Configure API keys, fetch live available models per provider, test connectivity, and select the active Default Model powering the public Chefchaouen Guide Chatbot.</p>
                 </div>
                 @php $activeDefault = $aiProviders->firstWhere('is_default', true); @endphp
-                <div class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-xs">
-                    Default Active: <strong>{{ $activeDefault?->name ?? 'None' }}</strong> ({{ $activeDefault?->selected_model ?? 'local fallback' }})
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-xs">
+                        Default Active: <strong>{{ $activeDefault?->name ?? 'None' }}</strong> ({{ $activeDefault?->selected_model ?? 'local fallback' }})
+                    </div>
+                    <a href="{{ route('admin.settings.index', ['tab' => 'knowledge']) }}" class="px-4 py-2 rounded-xl bg-white text-chaouen-900 hover:bg-sky-50 text-xs font-bold transition">
+                        📚 Knowledge Base ({{ count($knowledgeItems ?? []) }}) →
+                    </a>
                 </div>
             </div>
 
@@ -339,7 +345,119 @@
         </div>
     @endif
 
-    <!-- TAB 5: FAQs -->
+    <!-- TAB 5: CHATBOT KNOWLEDGE BASE MANAGER -->
+    @if($tab === 'knowledge')
+        <div class="space-y-6">
+            <div class="bg-chaouen-900 text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="font-bold text-base">Chatbot Knowledge Base &amp; Seasonal Updates</h2>
+                    <p class="text-xs text-chaouen-100 mt-0.5">Add custom travel notes, seasonal closures, festival updates, or upload <code>.txt</code> / <code>.md</code> / <code>.csv</code> documents. Active entries feed both external AI models and the built-in local knowledge engine.</p>
+                </div>
+                <a href="{{ route('admin.chatbot-logs.index') }}" class="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">
+                    🤖 View Chatbot Logs →
+                </a>
+            </div>
+
+            <!-- Custom System Instructions & Seasonal Bulletin -->
+            <form action="{{ route('admin.settings.knowledge.instructions') }}" method="POST" class="bg-white rounded-2xl border border-slate-200 p-6 space-y-3 shadow-sm">
+                @csrf
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-900">Global AI Editorial Notes &amp; Seasonal Bulletin</h3>
+                        <p class="text-xs text-slate-500">Injected into every Chefchaouen Guide Chatbot prompt (e.g. current festival dates, waterfall weather advisories, Ramadan hours).</p>
+                    </div>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-chaouen-600 hover:bg-chaouen-700 text-white text-xs font-bold">Save Editorial Notes</button>
+                </div>
+                <textarea name="ai_system_instructions" rows="3"
+                          placeholder="e.g. Spring 2026 Advisory: Akchour trail is open daily; remind visitors that shared grand taxis depart for 20 MAD per seat until dusk..."
+                          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs">{{ old('ai_system_instructions', $settings['ai_system_instructions'] ?? '') }}</textarea>
+            </form>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Add Snippet or Upload File -->
+                <form action="{{ route('admin.settings.knowledge.store') }}" method="POST" enctype="multipart/form-data"
+                      class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 h-fit space-y-4 shadow-sm">
+                    @csrf
+                    <h3 class="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2.5">+ Add Knowledge Snippet or Upload Document</h3>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Snippet Title *</label>
+                        <input type="text" name="title" required placeholder="e.g. Akchour Spring Shuttle & Taxi Fares"
+                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Topic Category *</label>
+                        <select name="category" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs">
+                            <option value="Seasonal Update">Seasonal Update</option>
+                            <option value="Transport & Pricing">Transport & Pricing</option>
+                            <option value="Hiking & Trail Conditions">Hiking & Trail Conditions</option>
+                            <option value="Events & Festivals">Events & Festivals</option>
+                            <option value="Medina Local Tips">Medina Local Tips</option>
+                            <option value="FAQ Snippet">FAQ Snippet</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Knowledge Content / Facts</label>
+                        <textarea name="content" rows="5"
+                                  placeholder="Write clear factual bullet points, prices in MAD, opening times, or local directions..."
+                                  class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs"></textarea>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Or Upload Text Document (.txt, .md, .csv)</label>
+                        <input type="file" name="knowledge_file" accept=".txt,.md,.csv" class="block w-full text-xs text-slate-600">
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-chaouen-600 hover:bg-chaouen-700 text-white text-xs font-bold transition">
+                        Add to Chatbot Knowledge Base
+                    </button>
+                </form>
+
+                <!-- Knowledge Entries List -->
+                <div class="lg:col-span-7 space-y-3">
+                    @forelse($knowledgeItems as $item)
+                        <div class="bg-white rounded-2xl border {{ !empty($item['is_active']) ? 'border-slate-200' : 'border-amber-200 bg-amber-50/30 opacity-75' }} p-5 shadow-sm space-y-2">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                                        <span class="px-2.5 py-0.5 rounded-full bg-chaouen-50 text-chaouen-800 text-[10px] font-bold uppercase">{{ $item['category'] ?? 'General' }}</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ !empty($item['is_active']) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700' }}">
+                                            {{ !empty($item['is_active']) ? 'Active in AI Prompt' : 'Paused' }}
+                                        </span>
+                                        @if(!empty($item['source']))
+                                            <span class="text-[10px] text-slate-400">{{ $item['source'] }}</span>
+                                        @endif
+                                    </div>
+                                    <h4 class="font-bold text-sm text-slate-900">{{ $item['title'] ?? 'Knowledge Entry' }}</h4>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <form action="{{ route('admin.settings.knowledge.toggle', $item['id']) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="px-2.5 py-1 rounded-lg {{ !empty($item['is_active']) ? 'bg-amber-50 text-amber-800' : 'bg-emerald-600 text-white' }} text-[11px] font-semibold">
+                                            {{ !empty($item['is_active']) ? 'Pause' : 'Activate' }}
+                                        </button>
+                                    </form>
+                                    <form action="{{ route('admin.settings.knowledge.destroy', $item['id']) }}" method="POST" onsubmit="return confirm('Remove this knowledge snippet?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-[11px] font-semibold">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{{ $item['content'] ?? '' }}</p>
+                        </div>
+                    @empty
+                        <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center text-xs text-slate-500">
+                            No custom knowledge snippets added yet. Add seasonal hours, festival guides, or upload a `.txt` / `.md` note on the left to train the chatbot alongside your Places, Routes, and FAQs.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- TAB 6: FAQs -->
     @if($tab === 'faqs')
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <form action="{{ route('admin.settings.faqs.store') }}" method="POST" class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 h-fit space-y-3">

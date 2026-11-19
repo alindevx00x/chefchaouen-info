@@ -1,5 +1,39 @@
 @extends('layouts.public')
 
+@push('schema')
+    @php
+        $homeFaqEntities = $faqs->map(fn ($faq) => [
+            '@type' => 'Question',
+            'name' => $faq->question,
+            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $faq->answer],
+        ])->values()->all();
+
+        $homeSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'TouristDestination',
+                    'name' => 'Chefchaouen, the Blue Pearl of Morocco',
+                    'alternateName' => ['Chaouen', 'The Blue City', 'Chauen'],
+                    'description' => 'Founded in 1471 in the Rif Mountains of northern Morocco, Chefchaouen is celebrated for its blue-washed medina, historic Kasbah, Andalusian heritage, and nearby Akchour Waterfalls.',
+                    'url' => route('home'),
+                    'geo' => [
+                        '@type' => 'GeoCoordinates',
+                        'latitude' => 35.1688,
+                        'longitude' => -5.2636,
+                    ],
+                    'touristType' => ['Cultural Travelers', 'Hikers', 'Photographers', 'Slow Travelers'],
+                ],
+                [
+                    '@type' => 'FAQPage',
+                    'mainEntity' => $homeFaqEntities,
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($homeSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
+
 @section('content')
     <!-- 1. HERO SECTION WITH TABBED SEARCH & BACKGROUND -->
     <section class="relative overflow-hidden bg-slate-950 text-white">
@@ -468,6 +502,7 @@
                     @endif
                     <form action="{{ route('newsletter.subscribe') }}" method="POST" class="space-y-2.5">
                         @csrf
+                        @include('public.partials.honeypot')
                         <input type="text" name="name" placeholder="Your name (optional)"
                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-chaouen-500">
                         <div class="flex gap-2">

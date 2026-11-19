@@ -34,18 +34,22 @@ Route::get('/blog/{slug}', [PublicController::class, 'blogShow'])->name('blog.sh
 
 Route::get('/faq', [PublicController::class, 'faq'])->name('faq.index');
 Route::get('/contact', [PublicController::class, 'contact'])->name('contact.index');
-Route::post('/contact', [PublicController::class, 'submitContact'])->name('contact.submit');
+Route::post('/contact', [PublicController::class, 'submitContact'])->middleware('throttle:contact-form')->name('contact.submit');
 
-Route::post('/newsletter', [PublicController::class, 'subscribeNewsletter'])->name('newsletter.subscribe');
-Route::post('/reviews', [PublicController::class, 'submitReview'])->name('reviews.submit');
+Route::post('/newsletter', [PublicController::class, 'subscribeNewsletter'])->middleware('throttle:newsletter-form')->name('newsletter.subscribe');
+Route::post('/reviews', [PublicController::class, 'submitReview'])->middleware('throttle:review-form')->name('reviews.submit');
 
 Route::get('/suggest', [PublicController::class, 'suggestForm'])->name('suggest.form');
-Route::post('/suggest', [PublicController::class, 'submitSuggestion'])->name('suggest.submit');
+Route::post('/suggest', [PublicController::class, 'submitSuggestion'])->middleware('throttle:suggest-form')->name('suggest.submit');
 
 Route::get('/page/{slug}', [PublicController::class, 'pageShow'])->name('page.show');
 
+// Dynamic SEO & AISEO Feeds
+Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->name('sitemap');
+Route::get('/llms.txt', [PublicController::class, 'llms'])->name('llms.txt');
+
 // Chefchaouen Guide AI Chatbot Endpoint
-Route::post('/api/chatbot/ask', [ChatbotController::class, 'ask'])->name('chatbot.ask');
+Route::post('/api/chatbot/ask', [ChatbotController::class, 'ask'])->middleware('throttle:chatbot')->name('chatbot.ask');
 
 // Hidden Admin Authentication Routes
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -63,6 +67,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/categories/{category}', [PlaceCategoryController::class, 'destroy'])->name('categories.destroy');
 
         Route::get('/places', [PlaceController::class, 'index'])->name('places.index');
+        Route::get('/places/export', [PlaceController::class, 'exportCsv'])->name('places.export');
+        Route::post('/places/bulk', [PlaceController::class, 'bulkAction'])->name('places.bulk');
         Route::get('/places/create', [PlaceController::class, 'create'])->name('places.create');
         Route::post('/places', [PlaceController::class, 'store'])->name('places.store');
         Route::get('/places/{place}/edit', [PlaceController::class, 'edit'])->name('places.edit');
@@ -72,6 +78,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Tourist Routes
         Route::get('/routes', [TouristRouteController::class, 'index'])->name('routes.index');
+        Route::get('/routes/export', [TouristRouteController::class, 'exportCsv'])->name('routes.export');
+        Route::post('/routes/bulk', [TouristRouteController::class, 'bulkAction'])->name('routes.bulk');
         Route::get('/routes/create', [TouristRouteController::class, 'create'])->name('routes.create');
         Route::post('/routes', [TouristRouteController::class, 'store'])->name('routes.store');
         Route::get('/routes/{route}/edit', [TouristRouteController::class, 'edit'])->name('routes.edit');
@@ -142,6 +150,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::post('/settings/faqs', [SettingsController::class, 'storeFaq'])->name('settings.faqs.store');
         Route::delete('/settings/faqs/{faq}', [SettingsController::class, 'destroyFaq'])->name('settings.faqs.destroy');
+
+        // Chatbot Knowledge Base Manager
+        Route::post('/settings/knowledge/instructions', [SettingsController::class, 'updateKnowledgeInstructions'])->name('settings.knowledge.instructions');
+        Route::post('/settings/knowledge', [SettingsController::class, 'storeKnowledgeEntry'])->name('settings.knowledge.store');
+        Route::post('/settings/knowledge/{entryId}/toggle', [SettingsController::class, 'toggleKnowledgeEntry'])->name('settings.knowledge.toggle');
+        Route::delete('/settings/knowledge/{entryId}', [SettingsController::class, 'destroyKnowledgeEntry'])->name('settings.knowledge.destroy');
 
         // Profile Settings & Users Management (Manage Other Admins)
         Route::get('/profile', [AdminUserController::class, 'profile'])->name('profile');

@@ -1,6 +1,38 @@
 @extends('layouts.public')
 
 @section('title', 'Frequently Asked Questions | Chefchaouen.info')
+@section('meta_description', 'Answers to the most common travel questions about visiting Chefchaouen, hiking Akchour Waterfalls, parking near the medina, local taxis, and safety in Morocco.')
+@section('meta_keywords', 'Chefchaouen FAQ, Akchour taxi price, Chefchaouen parking, visiting Chefchaouen Morocco tips')
+
+@push('schema')
+    @php
+        $faqEntities = $faqs->map(fn ($faq) => [
+            '@type' => 'Question',
+            'name' => $faq->question,
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => $faq->answer,
+            ],
+        ])->values()->all();
+        $faqSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'FAQs', 'item' => route('faq.index')],
+                    ],
+                ],
+                [
+                    '@type' => 'FAQPage',
+                    'mainEntity' => $faqEntities,
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($faqSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="bg-chaouen-900 text-white py-14">

@@ -2,6 +2,35 @@
 
 @section('title', ($page->meta_title ?: $page->title) . ' | Chefchaouen.info')
 @section('meta_description', $page->meta_description ?: $page->subtitle)
+@if($page->featured_image)
+    @section('og_image', asset($page->featured_image))
+@endif
+
+@push('schema')
+    @php
+        $pageSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => $page->title, 'item' => route('page.show', $page->slug)],
+                    ],
+                ],
+                [
+                    '@type' => 'WebPage',
+                    'name' => $page->title,
+                    'description' => $page->meta_description ?: $page->subtitle,
+                    'url' => route('page.show', $page->slug),
+                    'inLanguage' => 'en',
+                    'isPartOf' => ['@id' => url('/') . '#website'],
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($pageSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="bg-gradient-to-b from-chaouen-900 to-chaouen-800 text-white py-14">
@@ -18,9 +47,11 @@
 
     <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
         @if($page->featured_image)
-            <div class="aspect-[16/9] rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
-                <img src="{{ asset($page->featured_image) }}" alt="{{ $page->title }}" class="w-full h-full object-cover">
-            </div>
+            @include('public.partials.media-gallery', [
+                'featured' => $page->featured_image,
+                'album' => [],
+                'title' => $page->title,
+            ])
         @endif
 
         <div class="bg-white rounded-3xl border border-slate-200 p-7 sm:p-10 prose prose-slate max-w-none leading-relaxed">

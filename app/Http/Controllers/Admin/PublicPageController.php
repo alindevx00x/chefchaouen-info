@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PublicPage;
+use App\Services\SeoFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -43,6 +44,7 @@ class PublicPageController extends Controller
     public function destroy(PublicPage $page)
     {
         $page->delete();
+        SeoFeedService::flushCaches();
         return back()->with('success', 'Public page deleted.');
     }
 
@@ -64,7 +66,7 @@ class PublicPageController extends Controller
             'new_pdf_descriptions.*' => 'nullable|string|max:255',
         ]);
 
-        $featuredImage = $data['featured_image_url'] ?: $page->featured_image;
+        $featuredImage = ($data['featured_image_url'] ?? null) ?: $page->featured_image;
         if ($request->hasFile('featured_image_file')) {
             $featuredImage = '/storage/' . $request->file('featured_image_file')->store('uploads/pages', 'public');
         }
@@ -117,5 +119,7 @@ class PublicPageController extends Controller
             'is_published' => $request->boolean('is_published'),
             'sort_order' => $data['sort_order'] ?? 0,
         ])->save();
+
+        SeoFeedService::flushCaches();
     }
 }

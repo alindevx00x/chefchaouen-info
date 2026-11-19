@@ -1,6 +1,32 @@
 @extends('layouts.public')
 
 @section('title', 'Tourist Routes in Chefchaouen | Inside Medina & Rif Mountains')
+@section('meta_description', 'Explore curated walking routes inside Chefchaouen Blue Medina and scenic Rif Mountain hikes to Akchour Waterfalls, Spanish Mosque, Azilan, and Jebel El-Kelaa.')
+@section('meta_keywords', 'Chefchaouen hiking routes, Akchour Waterfalls hike, Spanish Mosque walk, Talassemtane National Park trails, Jebel El-Kelaa')
+
+@push('schema')
+    @php
+        $routesIndexSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Tourist Routes', 'item' => route('routes.index')],
+                    ],
+                ],
+                [
+                    '@type' => 'CollectionPage',
+                    'name' => 'Chefchaouen Tourist Routes',
+                    'description' => 'Walking and hiking routes inside Chefchaouen medina and across the Rif Mountains.',
+                    'url' => route('routes.index'),
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($routesIndexSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="bg-gradient-to-b from-chaouen-900 to-sky-900 text-white py-14">

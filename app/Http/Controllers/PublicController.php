@@ -13,11 +13,34 @@ use App\Models\PlaceCategory;
 use App\Models\PublicPage;
 use App\Models\Review;
 use App\Models\TouristRoute;
+use App\Services\SeoFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PublicController extends Controller
 {
+    public function sitemap(Request $request, SeoFeedService $seoFeed)
+    {
+        return response(
+            $seoFeed->buildSitemapXml($request->getSchemeAndHttpHost()),
+            200,
+            ['Content-Type' => 'application/xml; charset=UTF-8']
+        );
+    }
+
+    public function llms(Request $request, SeoFeedService $seoFeed)
+    {
+        return response(
+            $seoFeed->buildLlmsTxt($request->getSchemeAndHttpHost()),
+            200,
+            ['Content-Type' => 'text/plain; charset=UTF-8']
+        );
+    }
+
+    protected function isHoneypotTriggered(Request $request): bool
+    {
+        return trim((string) $request->input('website_hp', '')) !== '';
+    }
     public function home()
     {
         $categories = PlaceCategory::where('is_active', true)
@@ -289,6 +312,10 @@ class PublicController extends Controller
 
     public function submitContact(Request $request)
     {
+        if ($this->isHoneypotTriggered($request)) {
+            return back()->with('success', 'Thank you! Your message has been sent to the Chefchaouen.info editorial team.');
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:160',
@@ -311,6 +338,13 @@ class PublicController extends Controller
 
     public function subscribeNewsletter(Request $request)
     {
+        if ($this->isHoneypotTriggered($request)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Subscribed to Chefchaouen.info updates!']);
+            }
+            return back()->with('newsletter_success', 'Welcome aboard! You are now subscribed to Chefchaouen.info updates.');
+        }
+
         $data = $request->validate([
             'email' => 'required|email|max:160',
             'name' => 'nullable|string|max:120',
@@ -334,6 +368,10 @@ class PublicController extends Controller
 
     public function submitReview(Request $request)
     {
+        if ($this->isHoneypotTriggered($request)) {
+            return back()->with('review_success', 'Thank you! Your review & rating have been submitted and will appear once approved by our team.');
+        }
+
         $data = $request->validate([
             'type' => 'required|in:place,route',
             'id' => 'required|integer',
@@ -371,6 +409,10 @@ class PublicController extends Controller
 
     public function submitSuggestion(Request $request)
     {
+        if ($this->isHoneypotTriggered($request)) {
+            return back()->with('success', 'Thank you! Your suggestion has been submitted for editorial review.');
+        }
+
         $kind = $request->input('suggestion_type', 'place');
 
         if ($kind === 'route') {

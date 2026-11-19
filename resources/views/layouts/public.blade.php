@@ -3,23 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', $siteSettings['seo_meta_title'] ?? 'Chefchaouen.info | Deeper Than Blue')</title>
-    <meta name="description" content="@yield('meta_description', $siteSettings['seo_meta_description'] ?? 'Curated travel directory for Chefchaouen, Morocco.')">
-    <meta name="keywords" content="@yield('meta_keywords', $siteSettings['seo_meta_keywords'] ?? 'Chefchaouen, Blue Pearl, Akchour, Routes')">
-    <meta name="robots" content="{{ $siteSettings['seo_robots'] ?? 'index, follow' }}">
+    @php
+        $resolvedTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($siteSettings['seo_meta_title'] ?? 'Chefchaouen.info | Deeper Than Blue');
+        $resolvedDescription = html_entity_decode(trim($__env->yieldContent('meta_description')), ENT_QUOTES, 'UTF-8') ?: ($siteSettings['seo_meta_description'] ?? 'Curated travel directory, interactive map, Rif Mountain hiking routes, and AI travel guide for Chefchaouen, Morocco.');
+        $resolvedKeywords = html_entity_decode(trim($__env->yieldContent('meta_keywords')), ENT_QUOTES, 'UTF-8') ?: ($siteSettings['seo_meta_keywords'] ?? 'Chefchaouen, Blue Pearl, Akchour Waterfalls, Rif Mountains, Chefchaouen Routes, Chefchaouen Medina, Hotels, Restaurants, Interactive Map');
+        $resolvedCanonical = trim($__env->yieldContent('canonical')) ?: url()->current();
+        $resolvedOgImage = trim($__env->yieldContent('og_image')) ?: asset($siteSettings['seo_og_image'] ?? '/images/gallery/hero-medina.jpg');
+        $resolvedOgType = trim($__env->yieldContent('og_type')) ?: 'website';
+        $baseRobots = trim((string) ($siteSettings['seo_robots'] ?? 'index, follow'));
+        if (!str_contains(strtolower($baseRobots), 'noindex') && !str_contains(strtolower($baseRobots), 'max-image-preview')) {
+            $baseRobots .= ', max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+        }
+        $siteDisplayName = $siteSettings['site_name'] ?? 'Chefchaouen.info';
+        $sameAsLinks = array_values(array_filter([
+            $siteSettings['social_instagram'] ?? null,
+            $siteSettings['social_facebook'] ?? null,
+            $siteSettings['social_youtube'] ?? null,
+            $siteSettings['social_tiktok'] ?? null,
+        ]));
+        $orgSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'Organization',
+                    '@id' => url('/') . '#organization',
+                    'name' => $siteDisplayName,
+                    'url' => url('/'),
+                    'email' => $siteSettings['contact_email'] ?? 'contact@chefchaouen.info',
+                    'logo' => !empty($siteSettings['site_icon']) ? asset($siteSettings['site_icon']) : asset('/images/gallery/hero-medina.jpg'),
+                    'sameAs' => $sameAsLinks,
+                ],
+                [
+                    '@type' => 'WebSite',
+                    '@id' => url('/') . '#website',
+                    'url' => url('/'),
+                    'name' => $siteDisplayName,
+                    'description' => $siteSettings['seo_meta_description'] ?? 'Curated travel directory for Chefchaouen, Morocco.',
+                    'publisher' => ['@id' => url('/') . '#organization'],
+                    'inLanguage' => ['en', 'fr', 'es', 'ar'],
+                    'potentialAction' => [
+                        '@type' => 'SearchAction',
+                        'target' => url('/places') . '?q={search_term_string}',
+                        'query-input' => 'required name=search_term_string',
+                    ],
+                ],
+            ],
+        ];
+    @endphp
+    <title>{{ $resolvedTitle }}</title>
+    <meta name="description" content="{{ $resolvedDescription }}">
+    <meta name="keywords" content="{{ $resolvedKeywords }}">
+    <meta name="robots" content="@yield('meta_robots', $baseRobots)">
+    <meta name="author" content="@yield('meta_author', $siteDisplayName)">
+    <link rel="canonical" href="{{ $resolvedCanonical }}">
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="{{ route('sitemap') }}">
+    <link rel="alternate" type="text/plain" title="LLMs Guide" href="{{ route('llms.txt') }}">
+
+    <!-- Geographic Metadata (GEO / Local Search) -->
+    <meta name="geo.region" content="MA-01">
+    <meta name="geo.placename" content="@yield('geo_placename', 'Chefchaouen, Rif Mountains, Morocco')">
+    <meta name="geo.position" content="@yield('geo_position', '35.1688;-5.2636')">
+    <meta name="ICBM" content="@yield('geo_icbm', '35.1688, -5.2636')">
+
     @if(!empty($siteSettings['seo_google_verification']))
         <meta name="google-site-verification" content="{{ $siteSettings['seo_google_verification'] }}">
     @endif
-    <meta property="og:title" content="@yield('title', $siteSettings['seo_meta_title'] ?? 'Chefchaouen.info')">
-    <meta property="og:description" content="@yield('meta_description', $siteSettings['seo_meta_description'] ?? '')">
-    <meta property="og:image" content="{{ asset($siteSettings['seo_og_image'] ?? '/images/gallery/hero-medina.jpg') }}">
-    <meta property="og:type" content="website">
+
+    <!-- OpenGraph & Twitter Cards -->
+    <meta property="og:site_name" content="{{ $siteDisplayName }}">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="{{ $resolvedCanonical }}">
+    <meta property="og:title" content="{{ $resolvedTitle }}">
+    <meta property="og:description" content="{{ $resolvedDescription }}">
+    <meta property="og:image" content="{{ $resolvedOgImage }}">
+    <meta property="og:image:alt" content="{{ $resolvedTitle }}">
+    <meta property="og:type" content="{{ $resolvedOgType }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $resolvedTitle }}">
+    <meta name="twitter:description" content="{{ $resolvedDescription }}">
+    <meta name="twitter:image" content="{{ $resolvedOgImage }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @if(!empty($siteSettings['site_favicon']))
         <link rel="icon" href="{{ asset($siteSettings['site_favicon']) }}">
         <link rel="shortcut icon" href="{{ asset($siteSettings['site_favicon']) }}">
         <link rel="apple-touch-icon" href="{{ asset($siteSettings['site_favicon']) }}">
     @endif
+
+    <script type="application/ld+json">{!! json_encode($orgSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    @stack('schema')
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,7 +199,13 @@
     @stack('head')
 </head>
 <body class="bg-skywash text-slate-800 font-sans antialiased selection:bg-chaouen-100 selection:text-chaouen-900"
-      x-data="{ mobileMenu: false, chatOpen: false, gdprAccepted: localStorage.getItem('chefchaouen_gdpr_ok') === '1', showTopBtn: false }"
+      x-data="{
+        mobileMenu: false,
+        chatOpen: sessionStorage.getItem('chefchaouen_chat_open_v1') === '1',
+        gdprAccepted: localStorage.getItem('chefchaouen_gdpr_ok') === '1',
+        showTopBtn: false
+      }"
+      x-init="$watch('chatOpen', v => { try { sessionStorage.setItem('chefchaouen_chat_open_v1', v ? '1' : '0'); } catch (e) {} if (v) { $nextTick(() => { const box = document.getElementById('chatbot-messages'); if (box) box.scrollTop = box.scrollHeight; }); } })"
       @scroll.window="showTopBtn = window.scrollY > 450"
       @open-chaouen-chat.window="chatOpen = true; $nextTick(() => { if ($event.detail && $event.detail.prompt) { window.askChefchaouenChatbot($event.detail.prompt); } })">
 
@@ -375,7 +452,7 @@
         <!-- Chat Panel -->
         <div x-show="chatOpen" x-transition x-cloak
              class="w-[360px] sm:w-[400px] h-[540px] max-h-[82vh] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
-            <div class="bg-gradient-to-r from-chaouen-800 to-chaouen-600 px-5 py-4 text-white flex items-center justify-between">
+            <div class="bg-gradient-to-r from-chaouen-800 to-chaouen-600 px-5 py-4 text-white flex items-center justify-between gap-2">
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
@@ -383,15 +460,21 @@
                     </div>
                     <p class="text-[11px] text-chaouen-100 mt-0.5">Grounded strictly in Chefchaouen.info directory</p>
                 </div>
-                <button type="button" @click="chatOpen = false" class="p-1.5 rounded-full hover:bg-white/15 transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="window.clearChefchaouenChat()" title="Start a new conversation"
+                            class="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-[11px] font-semibold transition">
+                        New Chat
+                    </button>
+                    <button type="button" @click="chatOpen = false" aria-label="Close chat" class="p-1.5 rounded-full hover:bg-white/15 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
 
             <div id="chatbot-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 text-sm">
                 <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-3.5 shadow-sm text-slate-700">
                     <p class="font-semibold text-chaouen-800 mb-1">Marhaba! I am your Chefchaouen Guide.</p>
-                    <p class="text-xs leading-relaxed text-slate-600">Ask me about medina places, Rif Mountain routes, Akchour waterfalls, local food, or parking. (Strictly limited to Chefchaouen travel topics.)</p>
+                    <p class="text-xs leading-relaxed text-slate-600">Ask me about medina places, Rif Mountain routes, Akchour waterfalls, local food, or parking. Your chat stays saved while you explore the website.</p>
                 </div>
 
                 <!-- Suggested Prompts -->
@@ -401,6 +484,8 @@
                     <button type="button" onclick="window.askChefchaouenChatbot('Where are hidden gems and great sunset views in the medina?')" class="text-left text-xs px-3 py-1.5 rounded-full bg-chaouen-50 text-chaouen-700 border border-chaouen-200 hover:bg-chaouen-100 transition">🌅 Sunset & hidden gems</button>
                     <button type="button" onclick="window.askChefchaouenChatbot('Where should I eat traditional Moroccan food or stay in a riad?')" class="text-left text-xs px-3 py-1.5 rounded-full bg-chaouen-50 text-chaouen-700 border border-chaouen-200 hover:bg-chaouen-100 transition">🍽️ Restaurants & Riads</button>
                 </div>
+
+                <div id="chatbot-thread" class="space-y-3"></div>
             </div>
 
             <form onsubmit="event.preventDefault(); window.submitChatbotInput();" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
@@ -467,67 +552,170 @@
     </script>
     <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- Chefchaouen Guide Chatbot Script -->
+    <!-- Chefchaouen Guide Chatbot Script (Persistent across pages via localStorage) -->
     <script>
-        window.chaouenChatHistory = [];
+        (function () {
+            const CHAT_STORAGE_KEY = 'chefchaouen_chat_history_v1';
+            const MAX_STORED_MESSAGES = 40;
+            window.chaouenChatHistory = [];
 
-        function formatChatText(text) {
-            return text
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\[(.*?)\]\((\/.*?)\)/g, '<a href="$2" class="text-chaouen-600 underline font-medium">$1</a>')
-                .replace(/\n/g, '<br>');
-        }
-
-        window.submitChatbotInput = function () {
-            const input = document.getElementById('chatbot-input');
-            const text = input.value.trim();
-            if (!text) return;
-            input.value = '';
-            window.askChefchaouenChatbot(text);
-        };
-
-        window.askChefchaouenChatbot = async function (promptText) {
-            const box = document.getElementById('chatbot-messages');
-            const userBubble = document.createElement('div');
-            userBubble.className = 'flex justify-end';
-            userBubble.innerHTML = `<div class="bg-chaouen-600 text-white rounded-2xl rounded-tr-sm px-3.5 py-2.5 max-w-[85%] text-xs sm:text-sm shadow-sm">${formatChatText(promptText)}</div>`;
-            box.appendChild(userBubble);
-
-            const loadingBubble = document.createElement('div');
-            loadingBubble.className = 'flex justify-start';
-            loadingBubble.innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs text-slate-500 shadow-sm">Consulting Chefchaouen.info directory...</div>`;
-            box.appendChild(loadingBubble);
-            box.scrollTop = box.scrollHeight;
-
-            try {
-                const res = await fetch('{{ route('chatbot.ask') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: promptText,
-                        history: window.chaouenChatHistory
-                    })
-                });
-                const data = await res.json();
-                loadingBubble.remove();
-
-                const botBubble = document.createElement('div');
-                botBubble.className = 'flex justify-start';
-                botBubble.innerHTML = `<div class="bg-white border ${data.blocked ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200'} rounded-2xl rounded-tl-sm px-3.5 py-3 max-w-[90%] text-xs sm:text-sm text-slate-700 shadow-sm leading-relaxed">${formatChatText(data.reply || 'Sorry, please try again.')}</div>`;
-                box.appendChild(botBubble);
-
-                window.chaouenChatHistory.push({ role: 'user', content: promptText });
-                window.chaouenChatHistory.push({ role: 'assistant', content: data.reply || '' });
-                box.scrollTop = box.scrollHeight;
-            } catch (err) {
-                loadingBubble.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-2xl px-3.5 py-2 text-xs text-red-700">Unable to reach Chefchaouen Guide right now.</div>`;
+            function formatChatText(text) {
+                return String(text || '')
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\[(.*?)\]\((\/.*?)\)/g, '<a href="$2" class="text-chaouen-600 underline font-medium">$1</a>')
+                    .replace(/\n/g, '<br>');
             }
-        };
+
+            function loadStoredMessages() {
+                try {
+                    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+                    if (!raw) return [];
+                    const parsed = JSON.parse(raw);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function saveStoredMessages(messages) {
+                try {
+                    const trimmed = messages.slice(-MAX_STORED_MESSAGES);
+                    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(trimmed));
+                } catch (e) {
+                    // Ignore storage quota errors cleanly
+                }
+            }
+
+            function appendMessageBubble(entry) {
+                const thread = document.getElementById('chatbot-thread');
+                if (!thread) return;
+
+                const bubble = document.createElement('div');
+                if (entry.role === 'user') {
+                    bubble.className = 'flex justify-end';
+                    bubble.innerHTML = `<div class="bg-chaouen-600 text-white rounded-2xl rounded-tr-sm px-3.5 py-2.5 max-w-[85%] text-xs sm:text-sm shadow-sm">${formatChatText(entry.content)}</div>`;
+                } else {
+                    bubble.className = 'flex justify-start';
+                    const borderClass = entry.blocked ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200';
+                    bubble.innerHTML = `<div class="bg-white border ${borderClass} rounded-2xl rounded-tl-sm px-3.5 py-3 max-w-[90%] text-xs sm:text-sm text-slate-700 shadow-sm leading-relaxed">${formatChatText(entry.content)}</div>`;
+                }
+                thread.appendChild(bubble);
+            }
+
+            function renderRestoredChat() {
+                const thread = document.getElementById('chatbot-thread');
+                const box = document.getElementById('chatbot-messages');
+                const suggestions = document.getElementById('chatbot-suggestions');
+                if (!thread || !box) return;
+
+                const saved = loadStoredMessages();
+                thread.innerHTML = '';
+                window.chaouenChatHistory = [];
+
+                if (saved.length > 0) {
+                    if (suggestions) suggestions.classList.add('hidden');
+                    saved.forEach(item => {
+                        if (item && (item.role === 'user' || item.role === 'assistant') && item.content) {
+                            appendMessageBubble(item);
+                            window.chaouenChatHistory.push({ role: item.role, content: item.content });
+                        }
+                    });
+                    box.scrollTop = box.scrollHeight;
+                } else if (suggestions) {
+                    suggestions.classList.remove('hidden');
+                }
+            }
+
+            window.clearChefchaouenChat = function () {
+                try {
+                    localStorage.removeItem(CHAT_STORAGE_KEY);
+                } catch (e) {}
+                window.chaouenChatHistory = [];
+                renderRestoredChat();
+            };
+
+            window.submitChatbotInput = function () {
+                const input = document.getElementById('chatbot-input');
+                const text = input.value.trim();
+                if (!text) return;
+                input.value = '';
+                window.askChefchaouenChatbot(text);
+            };
+
+            window.askChefchaouenChatbot = async function (promptText) {
+                const thread = document.getElementById('chatbot-thread');
+                const box = document.getElementById('chatbot-messages');
+                const suggestions = document.getElementById('chatbot-suggestions');
+                if (!thread || !box) return;
+
+                if (suggestions) suggestions.classList.add('hidden');
+
+                const userEntry = { role: 'user', content: promptText };
+                appendMessageBubble(userEntry);
+
+                const stored = loadStoredMessages();
+                stored.push(userEntry);
+                saveStoredMessages(stored);
+                const historyForApi = window.chaouenChatHistory.slice(-10);
+                window.chaouenChatHistory.push(userEntry);
+
+                const loadingBubble = document.createElement('div');
+                loadingBubble.className = 'flex justify-start';
+                loadingBubble.innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs text-slate-500 shadow-sm">Consulting Chefchaouen.info directory...</div>`;
+                thread.appendChild(loadingBubble);
+                box.scrollTop = box.scrollHeight;
+
+                try {
+                    const res = await fetch('{{ route('chatbot.ask') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: promptText,
+                            history: historyForApi
+                        })
+                    });
+
+                    loadingBubble.remove();
+
+                    if (res.status === 429) {
+                        const rateEntry = {
+                            role: 'assistant',
+                            content: 'You are sending messages very quickly. Please wait a few seconds before asking another question.',
+                            blocked: true
+                        };
+                        appendMessageBubble(rateEntry);
+                        box.scrollTop = box.scrollHeight;
+                        return;
+                    }
+
+                    const data = await res.json();
+                    const replyText = data.reply || data.message || 'Sorry, please try again.';
+                    const botEntry = { role: 'assistant', content: replyText, blocked: Boolean(data.blocked) };
+                    appendMessageBubble(botEntry);
+
+                    const updated = loadStoredMessages();
+                    updated.push(botEntry);
+                    saveStoredMessages(updated);
+                    window.chaouenChatHistory.push({ role: 'assistant', content: replyText });
+                    box.scrollTop = box.scrollHeight;
+                } catch (err) {
+                    loadingBubble.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-2xl px-3.5 py-2 text-xs text-red-700">Unable to reach Chefchaouen Guide right now.</div>`;
+                }
+            };
+
+            // Restore persisted chat immediately and keep multi-tab storage in sync
+            renderRestoredChat();
+            window.addEventListener('storage', function (e) {
+                if (e.key === CHAT_STORAGE_KEY) {
+                    renderRestoredChat();
+                }
+            });
+        })();
     </script>
     @stack('scripts')
 </body>

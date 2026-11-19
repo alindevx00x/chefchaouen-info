@@ -1,6 +1,32 @@
 @extends('layouts.public')
 
 @section('title', 'Places to Visit in Chefchaouen | Chefchaouen.info')
+@section('meta_description', 'Browse curated Chefchaouen hotels, boutique riads, rooftops, traditional restaurants, hidden gems, artisan shops, and parking gates across the Blue Medina.')
+@section('meta_keywords', 'Chefchaouen places to visit, best riads Chefchaouen, Chefchaouen restaurants, Blue Medina landmarks, Chefchaouen parking')
+
+@push('schema')
+    @php
+        $placesIndexSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Places to Visit', 'item' => route('places.index')],
+                    ],
+                ],
+                [
+                    '@type' => 'CollectionPage',
+                    'name' => 'Places to Visit in Chefchaouen',
+                    'description' => 'Curated places, riads, restaurants, cafés, and historic landmarks in Chefchaouen, Morocco.',
+                    'url' => route('places.index'),
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($placesIndexSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <section class="bg-gradient-to-b from-chaouen-900 to-chaouen-800 text-white py-14">

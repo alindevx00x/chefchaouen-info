@@ -40,6 +40,7 @@
 
                 <form action="{{ route('contact.submit') }}" method="POST" class="space-y-4">
                     @csrf
+                    @include('public.partials.honeypot')
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>

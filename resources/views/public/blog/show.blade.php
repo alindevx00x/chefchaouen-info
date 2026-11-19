@@ -2,6 +2,43 @@
 
 @section('title', ($post->meta_title ?: $post->title) . ' | Chefchaouen.info')
 @section('meta_description', $post->meta_description ?: $post->excerpt)
+@section('og_type', 'article')
+@if($post->featured_image)
+    @section('og_image', asset($post->featured_image))
+@endif
+
+@push('schema')
+    @php
+        $blogSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Journal', 'item' => route('blog.index')],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $post->title, 'item' => route('blog.show', $post->slug)],
+                    ],
+                ],
+                [
+                    '@type' => 'BlogPosting',
+                    'headline' => $post->title,
+                    'description' => $post->meta_description ?: $post->excerpt,
+                    'url' => route('blog.show', $post->slug),
+                    'image' => asset($post->featured_image ?: '/images/gallery/hero-medina.jpg'),
+                    'datePublished' => optional($post->published_at ?? $post->created_at)->toAtomString(),
+                    'dateModified' => optional($post->updated_at)->toAtomString(),
+                    'author' => [
+                        '@type' => 'Person',
+                        'name' => $post->author?->name ?: 'Chefchaouen.info Editorial',
+                    ],
+                    'publisher' => ['@id' => url('/') . '#organization'],
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($blogSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
     <article class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -21,8 +58,12 @@
         <h1 class="font-editorial text-4xl sm:text-5xl font-bold text-slate-900 leading-tight mb-6">{{ $post->title }}</h1>
 
         @if($post->featured_image)
-            <div class="aspect-[16/9] rounded-3xl overflow-hidden border border-slate-200 shadow-sm mb-8">
-                <img src="{{ asset($post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-full object-cover">
+            <div class="mb-8">
+                @include('public.partials.media-gallery', [
+                    'featured' => $post->featured_image,
+                    'album' => [],
+                    'title' => $post->title,
+                ])
             </div>
         @endif
 

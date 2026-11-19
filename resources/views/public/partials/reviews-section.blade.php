@@ -54,6 +54,7 @@
         <h3 class="font-bold text-base text-slate-900 mb-4">Add Your Review & Rating</h3>
         <form action="{{ route('reviews.submit') }}" method="POST" class="space-y-4">
             @csrf
+            @include('public.partials.honeypot')
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="id" value="{{ $targetId }}">
 
