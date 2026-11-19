@@ -12,7 +12,11 @@ echo "=========================================="
 PHP_BIN="${PHP_BIN:-$(command -v ea-php84 || command -v ea-php83 || command -v php)}"
 COMPOSER_BIN="${COMPOSER_BIN:-$(command -v composer)}"
 
-echo "Using PHP: $($PHP_BIN -v | head -n 1)"
+echo "Using PHP CLI: $($PHP_BIN -v | head -n 1)"
+$PHP_BIN -r 'exit(version_compare(PHP_VERSION, "8.3.0", ">=") ? 0 : 1);' || {
+    echo "ERROR: PHP 8.3+ is required (Laravel 13). Select PHP 8.3 or 8.4 in cPanel MultiPHP Manager."
+    exit 1
+}
 
 if [ ! -f ".env" ]; then
     echo "Creating .env from .env.example (remember to set DB credentials & APP_URL)..."

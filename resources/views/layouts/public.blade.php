@@ -148,15 +148,15 @@
 
     <!-- Main Editorial Navigation -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3.5 flex items-center justify-between gap-6">
-            <a href="{{ route('home') }}" class="flex items-center gap-3 group shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-6">
+            <a href="{{ route('home') }}" class="flex items-center gap-3.5 group shrink-0">
                 @if(!empty($siteSettings['site_icon']))
                     <img src="{{ asset($siteSettings['site_icon']) }}"
                          alt="{{ $siteSettings['site_name'] ?? 'Chefchaouen.info' }}"
-                         class="w-10 h-10 rounded-lg object-contain shrink-0 group-hover:scale-105 transition">
+                         class="h-14 sm:h-16 w-auto max-w-[200px] rounded-xl object-contain shrink-0 group-hover:scale-105 transition">
                 @else
-                    <div class="w-10 h-10 rounded-t-full rounded-b-lg bg-gradient-to-b from-chaouen-600 to-chaouen-800 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 rounded-t-full rounded-b-lg bg-gradient-to-b from-chaouen-600 to-chaouen-800 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c-3.5 0-6 2.8-6 6.5V21h12V9.5C18 5.8 15.5 3 12 3z" />
                             <circle cx="12" cy="11" r="1.5" fill="currentColor" />
                         </svg>
